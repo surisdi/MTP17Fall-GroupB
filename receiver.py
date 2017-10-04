@@ -5,7 +5,7 @@ import reedsolo as solomon
 TCP_IP = '127.0.0.1'
 TCP_PORT = 5005
 
-REDUNDANCY = 10
+REDUNDANCY = 30
 BUFFER_SIZE = 40
 
 rs = solomon.RSCodec(REDUNDANCY)
