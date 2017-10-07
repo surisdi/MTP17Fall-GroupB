@@ -41,7 +41,9 @@ void print_file(char *buffer, int len, int type)
     for (i = 0; i < len; i++) {
         if (type == 2)
             printBits(sizeof(buffer[0]), &buffer[i]);
-        else
+        else if(type == 0)
             printf(" %u ", buffer[i]);
+        else
+            printf("%c", buffer[i]);
     }
 }

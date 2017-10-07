@@ -2,9 +2,12 @@
 #define CLIENT_H_
 
 
-int initiateSocket(char *ip, int port)
+int initiateSocket(char *ip, int port);
 
-void radio (char *text, int sockfd){
+//void radio (char *text, int len, int sockfd);
 
+int send (char *text, int len, int sockfd);
+
+int receive(char *buffer, int len, int sockfd);
 
 #endif

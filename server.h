@@ -4,9 +4,9 @@
 
 int initiateServer(int port);
 
-char* readFromSocket (int newsockfd);
+int readFromSocket (char *buffer, int len, int newsockfd);
 
-void writeFromSocket (char* text, int newsockfd);
+int writeFromSocket (char* text, int len, int newsockfd);
 
 
 #endif

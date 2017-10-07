@@ -24,9 +24,10 @@ void bsc(char *sequence, int len, float prob)
 }
 
 
-// It builds the complete packet to be send (Adds Codes...)
+// It builds the complete packet to be send (Adds Codes... padding...)
 void packet_builder(char *packet, char *data, int len, int flag) {
 
+	//AFEGIR PADDING!!
     int i;
     for (i = 0; i < len; i++) { //Copy data into packet
 		packet[i] = data[i];

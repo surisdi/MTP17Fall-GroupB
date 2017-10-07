@@ -11,17 +11,12 @@
 #include <strings.h>
 #include <cstring>
 
-void error(char *msg)
-{
-    perror(msg);
-    exit(1);
-}
 
 int initiateServer(int port)
 {
      int sockfd, newsockfd, portno;
      socklen_t clilen;
-     char buffer[256];
+     
      struct sockaddr_in serv_addr, cli_addr;
      int n;
 
@@ -47,27 +42,16 @@ int initiateServer(int port)
 }
 
 
-char* readFromSocket (int newsockfd){
-	printf ("Reading from socket\n");	
-		
-	char* buffer = new char[256];
-
-	bzero(buffer,256);
-	int n = read(newsockfd,buffer,255);
-	if (n < 0) printf("ERROR reading from socket");
-
-	return buffer;
+int readFromSocket (char *buffer, int len, int newsockfd){
+    return read(newsockfd, buffer, len);
 }
 
-void writeFromSocket (char* text, int newsockfd){
-	
-	
-	int n = write(newsockfd,text, strlen (text));
-	if (n < 0) printf("ERROR writing to socket");
+int writeFromSocket (char* text, int len, int newsockfd){	
+	return write(newsockfd, text, len);
 }
 
 
-int main (){
+/*int main (){
 	int socket = initiateServer (5555);
 	
 	char* buffer = readFromSocket (socket);
@@ -77,5 +61,5 @@ int main (){
     writeFromSocket(buffer, socket);
 
 	return 0;
-}	
+}*/	
 
