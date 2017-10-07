@@ -1,67 +1,118 @@
-#include <cstdio>
-#include <cstdlib>
+#include <cstddef>
+#include <iostream>
+#include <string>
 
 #include "comms.h"
 #include "utils.h"
 #include "client.h"
 
+#include "schifra/schifra_galois_field.hpp"
+#include "schifra/schifra_galois_field_polynomial.hpp"
+#include "schifra/schifra_sequential_root_generator_polynomial_creator.hpp"
+#include "schifra/schifra_reed_solomon_encoder.hpp"
+#include "schifra/schifra_reed_solomon_decoder.hpp"
+#include "schifra/schifra_reed_solomon_block.hpp"
+#include "schifra/schifra_error_processes.hpp"
+
+#define PAYLOAD 222
 #define TCP_PORT 5005
-#define REDUNDANCY 30
-#define PAYLOAD 10
 
 
-int main() {
+int main()
+{
+	/* Finite Field Parameters */
+	const std::size_t field_descriptor                =   8;
+	const std::size_t generator_polynomial_index      = 120;
+	const std::size_t generator_polynomial_root_count =  32;
+
+	/* Reed Solomon Code Parameters */
+	const std::size_t code_length = 255;
+	const std::size_t fec_length  =  32;
+	const std::size_t data_length = code_length - fec_length;
+
+	/* Instantiate Finite Field and Generator Polynomials */
+	const schifra::galois::field field(field_descriptor,
+								  schifra::galois::primitive_polynomial_size06,
+								  schifra::galois::primitive_polynomial06);
+
+	schifra::galois::field_polynomial generator_polynomial(field);
+
+	if (
+		!schifra::make_sequential_root_generator_polynomial(field,
+															generator_polynomial_index,
+															generator_polynomial_root_count,
+															generator_polynomial)
+	   )
+	{
+	  std::cout << "Error - Failed to create sequential root generator!" << std::endl;
+	  return 1;
+	}
+
+	/* Instantiate Encoder and Decoder (Codec) */
+	typedef schifra::reed_solomon::encoder<code_length,fec_length,data_length> encoder_t;
+	typedef schifra::reed_solomon::decoder<code_length,fec_length,data_length> decoder_t;
+
+	const encoder_t encoder(field, generator_polynomial);
+	const decoder_t decoder(field, generator_polynomial_index);
+
+	/* Read file */
+    /*std::ifstream t("file.txt");
+    std::string str;
+
+    t.seekg(0, std::ios::end);
+    str.reserve(t.tellg());
+    t.seekg(0, std::ios::beg);
+
+    str.assign((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());*/
+    
+    /* Read file byte array style */
     int len;
-    char *buffer = readFileBytes("file.txt", &len);
-    //len = 100;
+    char *buffer = readFileBytes("file.zip", &len);
+    char *data = (char *)malloc(sizeof(char) * (PAYLOAD));
+    char *packet = (char *)malloc(sizeof(char) * code_length);
+        
+    std::string str(buffer);
+    std::string message;
+    
 
-    //print_file(buffer, len, 0);
-    //printf("\n\n\n\n");
-	//bsc(buffer, len, 0.1);
-	//print_file(buffer, len, 0);
+	/* Instantiate RS Block For Codec */
+	schifra::reed_solomon::block<code_length,fec_length> block;
+	
+	/* Start socket */
+	int sockfd = initiateSocket ((char *)"localhost", TCP_PORT);
 
-    //Flags to avoid errors
-    int s_last = 0, r_next = 0;
-    int i = 0;
-
-    int sockfd = initiateSocket ((char *)"localhost", TCP_PORT);
-
-
-    char *data;
-    char *packet = (char *)malloc(sizeof(char) * (PAYLOAD));
-    char ack[5];
-
-    int pay_len;
-
+	//len = PAYLOAD*2 + 3;
+	int i = 0;
     int extra = ((len % PAYLOAD) != 0);
+    int pay_len;
     while (i < len / PAYLOAD + extra) {
-
-        data = &buffer[i * PAYLOAD];
+		
+        data = &buffer[i*PAYLOAD];
         if ( (i + 1) * PAYLOAD > len ) { //Last packet may be smaller
             pay_len = len - ( i * PAYLOAD ); //Anar amb cuidado de posar els padding bits
         } else {
             pay_len = PAYLOAD;
         }
+        
+        message.assign(data, pay_len);
 
-
-        //packet_builder(packet, data, pay_len, s_last);
-        send(data, pay_len, sockfd);
-
-        print_file(data, pay_len, 3);
-        //printf("\n\n");
-
+		print_file(data, pay_len, 0);
+		
+        message.resize(code_length, 0x00);
+        message[PAYLOAD] = (char) pay_len; //Add information of the size of the payload
+        encoder.encode(message, block);
+        
+        printf("\n\n *** Packet %i **** \n\n", i);
+        
+        //printf("\n 4 \n");
+        for (int k=0; k < code_length; k++) {
+            printf(" %u ", block[k]);
+            packet[k] = block[k];
+        }
+        
+        send(packet, code_length, sockfd);
         i++;
-
-        /*
-        //radio.read(ack);
-        r_next = get_ack_label(ack);
-
-        if (isAck(ack)) {   //If it is NACK resend the same packet
-            if (r_next != s_last) { //Move to the next packet
-                s_last = s_last ^ 1;
-                i++;
-            }
-        }*/
     }
 
+   return 0;
 }

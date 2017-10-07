@@ -5,7 +5,7 @@
 
 char* readFileBytes(const char *name, int *mylen)  
 {  
-    FILE *fl = fopen(name, "r");  
+    FILE *fl = fopen(name, "rb");  
     fseek(fl, 0, SEEK_END);  
     long len = ftell(fl);  
     char *ret = (char *)malloc(sizeof(char)*len);   
