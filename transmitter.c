@@ -120,8 +120,21 @@ int main(int argc, char* argv[])
             packet[k] = block[k];
         }
         
-        send(packet, code_length, sockfd);
-        i++;
+        bool noisy_channel = true;
+        send(packet, code_length, sockfd, noisy_channel);
+
+        // Stop and wait
+
+        int is_ack;
+        char *packet[L_ACK]
+        // Aqui hauriem de posar un timer, i que el receive() no sigui bloquejant
+        // Mirar web http://developerweb.net/viewtopic.php?id=3196
+        n = receive(packet, L_ACK, socket);
+        is_ack = isAck(packet)
+
+        if(is_ack == 0){ // Missatge correcte
+        	i++;
+        }
     }
 
    return 0;

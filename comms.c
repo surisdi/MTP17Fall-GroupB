@@ -3,10 +3,10 @@
 #include <cstdio>
 #include <cstdlib>
 
-#define L_ACK 4
+#define int L_ACK 4
 
 char ack[4] = {'G','O','O','D'};
-char nack[4] = {'B', 'A','A','D'};
+char nack[4] = {'B','A','A','D'};
 
 void bsc(char *sequence, int len, float prob)
 {
@@ -61,4 +61,16 @@ int isAck(char *r_ack) {
 //TO-DO It extracts the label from the ACK
 int get_ack_label(char *r_ack) {
     return (int) (r_ack[L_ACK]);
+}
+
+void send_ack(int sockfd){
+	text = ack;
+	len = L_ACK;
+	return write(sockfd, text, len);
+}
+
+void send_nack(){
+	text = nack;
+	len = L_ACK;
+	return write(sockfd, text, len);
 }

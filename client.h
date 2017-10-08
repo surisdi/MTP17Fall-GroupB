@@ -6,7 +6,7 @@ int initiateSocket(char *ip, int port);
 
 //void radio (char *text, int len, int sockfd);
 
-int send (char *text, int len, int sockfd);
+int send (char *text, int len, int sockfd, bool noisy_channel);
 
 int receive(char *buffer, int len, int sockfd);
 
