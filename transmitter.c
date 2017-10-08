@@ -2,6 +2,11 @@
 #include <iostream>
 #include <string>
 
+#include <RF24/RF24.h>
+#include <unistd.h>
+#include <sstream>
+
+
 #include "comms.h"
 #include "utils.h"
 #include "client.h"
@@ -17,9 +22,45 @@
 #define PAYLOAD 222
 #define TCP_PORT 5005
 
+#define CHANNEL 97
+
+
+// GPIO025 (Pin 22) as CE, and CE0 as CS
+// SPI speed can be added as well (BCM2835_SPI_SPEED_8MHz)
+RF24 radio(25, 0); 
+
+// Addresses for the pipes, we need one for writing and one for reading
+const uint8_t addresses[][6] = {"1Node", "2Node"};
 
 int main(int argc, char* argv[])
 {
+	/* Define radio parameters */
+	
+	radio.begin();
+	radio.setChannel(CHANNEL); //2400 + n(MHz)
+	// Power Amplifier Level: MIN(-18dBm), LOW (-12dBm), HIGH (-6dBm), MAX (0 dBm)
+	radio.setPALevel(RF24_PA_LOW);
+	// Data rate: 250kbps, 1MBPS, 2MBPS
+	radio.setDataRate(RF24_2MBPS);
+	radio.setAutoAck(0);
+	radio.disableCRC();
+	
+	printf("\n ** Radio configuration ** \n");
+	radio.printDetails();
+	
+	radio.openWritingPipe(addresses[0]); // Open Pipes
+	// Up to 6 pipes can be open for reading, open pipe number 1 and give addresss
+	// Suposu que es per llegir mes rapid...
+	radio.openReadingPipe(1, addresses[1]); 
+	
+	// Transmitter will transmit first then read, that's why we first stop listening
+	radio.stopListening();
+	
+	
+	
+	
+	
+	
 	/* Deal with arguments */
 	
 	const char* file_name = "";
@@ -121,11 +162,13 @@ int main(int argc, char* argv[])
         }
         
         bool noisy_channel = true;
-        send(packet, code_length, sockfd, noisy_channel);
-
+        //send(packet, code_length, sockfd); //noisy_channel);
+        bool ok = radio.write( packet, code_length, 1 ); //Mirar el 1 del final en teoria es perque no esperi ack ni res
+        
+		i++;
         // Stop and wait
 
-        int is_ack;
+        /*int is_ack;
         char *packet[L_ACK]
         // Aqui hauriem de posar un timer, i que el receive() no sigui bloquejant
         // Mirar web http://developerweb.net/viewtopic.php?id=3196
@@ -134,7 +177,7 @@ int main(int argc, char* argv[])
 
         if(is_ack == 0){ // Missatge correcte
         	i++;
-        }
+        }*/
     }
 
    return 0;

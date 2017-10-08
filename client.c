@@ -1,5 +1,4 @@
 #include "client.h"
-#include "comms.h"
 
 #include <cstdio>
 #include <sys/types.h>
@@ -56,18 +55,7 @@ int initiateSocket(char *ip, int port)
     printf("%s\n",buffer);
 }*/
 
-int send (char *text, int len, int sockfd, bool noisy_channel) {
-    if(noisy_channel==true){
-        float prob = 0.01;
-        bsc(text, len, prob);
-
-        // See result
-        int i;
-        printf("\n");
-        for(i=0; i<len; i++){
-            printf("%c", text[i]);
-        }
-    }
+int send (char *text, int len, int sockfd) {
 	return write(sockfd, text, len);
 }
 
