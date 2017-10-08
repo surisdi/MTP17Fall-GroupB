@@ -65,7 +65,7 @@ int main()
 	std::string corrected = "";
 	corrected.resize(data_length, 0x00);
 
-	FILE *outputFile = fopen("output.zip", "w+b");
+	FILE *outputFile = fopen("output.txt", "w+b");
 	std::string spacket;
 	std::string data;
 	std::string fec;
@@ -99,9 +99,9 @@ int main()
         
         printf("BOOL: %u", blocked.data_to_string(corrected));
         printf("\n\n Corrected packet:  \n");
-		size = (int) corrected[PAYLOAD];
+		size = (unsigned char) corrected[PAYLOAD];
 		std::cout << " [ " << corrected.substr(0, size) << " ] " << std::endl;
-		printf("\n\n Size: %i", size);
+		printf("\n\n Size: %u", size);
 		
         fwrite((char *)corrected.substr(0, size).c_str(), sizeof(char), size, outputFile);
         counter++;

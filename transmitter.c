@@ -18,8 +18,18 @@
 #define TCP_PORT 5005
 
 
-int main()
+int main(int argc, char* argv[])
 {
+	/* Deal with arguments */
+	
+	const char* file_name = "";
+	if(argc < 2){
+		file_name = "file.txt";
+	}
+	else{
+		file_name = argv[1];
+	}
+
 	/* Finite Field Parameters */
 	const std::size_t field_descriptor                =   8;
 	const std::size_t generator_polynomial_index      = 120;
@@ -67,7 +77,7 @@ int main()
     
     /* Read file byte array style */
     int len;
-    char *buffer = readFileBytes("file.zip", &len);
+    char *buffer = readFileBytes(file_name, &len);
     char *data = (char *)malloc(sizeof(char) * (PAYLOAD));
     char *packet = (char *)malloc(sizeof(char) * code_length);
         
