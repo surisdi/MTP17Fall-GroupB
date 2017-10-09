@@ -94,7 +94,7 @@ int main()
 		if(!decoder.decode(blocked)) {
 			std::cout << "Error - Critical decoding failure! "
 					  << "Msg: " << blocked.error_as_string() << std::endl;
-			correct = false
+			correct = false;
 		} else if(!schifra::is_block_equivelent(blocked, spacket)) {
 			std::cout << "Error - Error correction failed! " << std::endl;
 			correct = false;
@@ -102,22 +102,25 @@ int main()
 
 		// Simulem tambe que a vegades no el rep, ni be ni malament: no fa res amb probabilitat p
 		float p = 0.01;
-		if(correct == false){
-			// Send NACK
-			send_nack(socket)
-		}
-		else{
-			// Send ACK
-			send_ack(socket)
+		float w = (double)rand()/ (double) RAND_MAX;
+		if(w > p){
+			if(correct == false){
+				// Send NACK
+				//send_nack(socket)
+			}
+			else{
+				// Send ACK
+				//send_ack(socket)
 
-	        printf("\n\n Corrected packet:  \n");
-			size = (unsigned char) corrected[PAYLOAD];
-			std::cout << " [ " << corrected.substr(0, size) << " ] " << std::endl;
-			printf("\n\n Size: %u", size);
-			
-	        fwrite((char *)corrected.substr(0, size).c_str(), sizeof(char), size, outputFile);
-	        counter++;
+		        printf("\n\n Corrected packet:  \n");
+				size = (unsigned char) corrected[PAYLOAD];
+				std::cout << " [ " << corrected.substr(0, size) << " ] " << std::endl;
+				printf("\n\n Size: %u", size);
+				
+		        fwrite((char *)corrected.substr(0, size).c_str(), sizeof(char), size, outputFile);
+		        counter++;
 
+			}
 		}
 	}
 

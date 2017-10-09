@@ -1,6 +1,8 @@
 #include <cstddef>
 #include <iostream>
 #include <string>
+#include <sys/time.h>
+#include <fcntl.h>
 
 #include "comms.h"
 #include "utils.h"
@@ -16,6 +18,7 @@
 
 #define PAYLOAD 222
 #define TCP_PORT 5005
+#define L_ACK 4
 
 
 int main(int argc, char* argv[])
@@ -116,7 +119,7 @@ int main(int argc, char* argv[])
         
         //printf("\n 4 \n");
         for (int k=0; k < code_length; k++) {
-            printf(" %u ", block[k]);
+            //printf(" %u ", block[k]);
             packet[k] = block[k];
         }
         
@@ -126,15 +129,36 @@ int main(int argc, char* argv[])
         // Stop and wait
 
         int is_ack;
-        char *packet[L_ACK]
+        char *packet[L_ACK];
         // Aqui hauriem de posar un timer, i que el receive() no sigui bloquejant
         // Mirar web http://developerweb.net/viewtopic.php?id=3196
-        n = receive(packet, L_ACK, socket);
-        is_ack = isAck(packet)
+
+        // Set non-blocking
+        int status;
+
+        struct timeval timeout;
+        timeout.tv_sec = 10;
+        timeout.tv_usec = 10000;
+
+        fd_set set;
+        FD_ZERO(&set);
+        FD_SET(sockfd,&set);
+
+        //fcntl(sockfd, F_SETFL, O_NONBLOCK);
+        // Trying to connect with timeout
+        status = select(sockfd+1, &packet, &set, NULL, &timeout);
+        printf("\nDespres del select\n\n");
+        printf("Status: %i\n", status);
+
+        if(status<0){
+
+        }
+        /*
+        is_ack = isAck(&packet);
 
         if(is_ack == 0){ // Missatge correcte
         	i++;
-        }
+        }*/
     }
 
    return 0;

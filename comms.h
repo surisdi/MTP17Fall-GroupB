@@ -9,4 +9,10 @@ int isAck(char *r_ack);
 
 int get_ack_label(char *r_ack);
 
+
+int send_ack(int sockfd);
+
+int send_nack(int sockfd);
+
+
 #endif

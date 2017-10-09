@@ -1,9 +1,15 @@
 #include "comms.h"
 
 #include <cstdio>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <cstring>
 #include <cstdlib>
+#include <unistd.h>
 
-#define int L_ACK 4
+#define L_ACK 4
 
 char ack[4] = {'G','O','O','D'};
 char nack[4] = {'B','A','A','D'};
@@ -63,14 +69,14 @@ int get_ack_label(char *r_ack) {
     return (int) (r_ack[L_ACK]);
 }
 
-void send_ack(int sockfd){
-	text = ack;
-	len = L_ACK;
+int send_ack(int sockfd){
+	char *text = ack;
+	int len = L_ACK;
 	return write(sockfd, text, len);
 }
 
-void send_nack(){
-	text = nack;
-	len = L_ACK;
+int send_nack(int sockfd){
+	char *text = nack;
+	int len = L_ACK;
 	return write(sockfd, text, len);
 }
