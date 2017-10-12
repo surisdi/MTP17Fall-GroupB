@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <iostream>
 #include <string>
+#include <unistd.h>
 
 #include <RF24/RF24.h>
 #include <unistd.h>
@@ -19,8 +20,8 @@
 #include "schifra/schifra_reed_solomon_block.hpp"
 #include "schifra/schifra_error_processes.hpp"
 
-#define PAYLOAD 222
 #define TCP_PORT 5005
+#define PAYLOAD 25
 
 #define CHANNEL 97
 
@@ -74,11 +75,11 @@ int main(int argc, char* argv[])
 	/* Finite Field Parameters */
 	const std::size_t field_descriptor                =   8;
 	const std::size_t generator_polynomial_index      = 120;
-	const std::size_t generator_polynomial_root_count =  32;
+	const std::size_t generator_polynomial_root_count =  6;
 
 	/* Reed Solomon Code Parameters */
-	const std::size_t code_length = 255;
-	const std::size_t fec_length  =  32;
+	const std::size_t code_length = 32;
+	const std::size_t fec_length  =  6;
 	const std::size_t data_length = code_length - fec_length;
 
 	/* Instantiate Finite Field and Generator Polynomials */
@@ -100,8 +101,8 @@ int main(int argc, char* argv[])
 	}
 
 	/* Instantiate Encoder and Decoder (Codec) */
-	typedef schifra::reed_solomon::encoder<code_length,fec_length,data_length> encoder_t;
-	typedef schifra::reed_solomon::decoder<code_length,fec_length,data_length> decoder_t;
+	typedef schifra::reed_solomon::shortened_encoder<code_length,fec_length,data_length> encoder_t;
+	typedef schifra::reed_solomon::shortened_decoder<code_length,fec_length,data_length> decoder_t;
 
 	const encoder_t encoder(field, generator_polynomial);
 	const decoder_t decoder(field, generator_polynomial_index);
@@ -121,8 +122,7 @@ int main(int argc, char* argv[])
     char *buffer = readFileBytes(file_name, &len);
     char *data = (char *)malloc(sizeof(char) * (PAYLOAD));
     char *packet = (char *)malloc(sizeof(char) * code_length);
-        
-    std::string str(buffer);
+
     std::string message;
     
 
@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
 	schifra::reed_solomon::block<code_length,fec_length> block;
 	
 	/* Start socket */
-	int sockfd = initiateSocket ((char *)"localhost", TCP_PORT);
+	//int sockfd = initiateSocket ((char *)"localhost", TCP_PORT);
 
 	//len = PAYLOAD*2 + 3;
 	int i = 0;
@@ -146,38 +146,23 @@ int main(int argc, char* argv[])
         }
         
         message.assign(data, pay_len);
-
-		print_file(data, pay_len, 0);
 		
         message.resize(code_length, 0x00);
-        message[PAYLOAD] = (char) pay_len; //Add information of the size of the payload
+        message[PAYLOAD] = (unsigned char) pay_len; //Add information of the size of the payload
         encoder.encode(message, block);
         
         printf("\n\n *** Packet %i **** \n\n", i);
-        
-        //printf("\n 4 \n");
+
         for (int k=0; k < code_length; k++) {
             printf(" %u ", block[k]);
             packet[k] = block[k];
         }
         
-        bool noisy_channel = true;
+        //bool noisy_channel = true;
         //send(packet, code_length, sockfd); //noisy_channel);
         bool ok = radio.write( packet, code_length, 1 ); //Mirar el 1 del final en teoria es perque no esperi ack ni res
         
 		i++;
-        // Stop and wait
-
-        /*int is_ack;
-        char *packet[L_ACK]
-        // Aqui hauriem de posar un timer, i que el receive() no sigui bloquejant
-        // Mirar web http://developerweb.net/viewtopic.php?id=3196
-        n = receive(packet, L_ACK, socket);
-        is_ack = isAck(packet)
-
-        if(is_ack == 0){ // Missatge correcte
-        	i++;
-        }*/
     }
 
    return 0;

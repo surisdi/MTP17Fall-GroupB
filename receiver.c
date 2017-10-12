@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <unistd.h>
 
 #include <RF24/RF24.h>
 #include <unistd.h>
@@ -20,7 +21,7 @@
 #include "schifra/schifra_error_processes.hpp"
 
 #define TCP_PORT 5005
-#define PAYLOAD 222
+#define PAYLOAD 25
 
 #define CHANNEL 97
 
@@ -59,11 +60,11 @@ int main()
 	/* Finite Field Parameters */
 	const std::size_t field_descriptor                =   8;
 	const std::size_t generator_polynomial_index      = 120;
-	const std::size_t generator_polynomial_root_count =  32;
+	const std::size_t generator_polynomial_root_count =  6;
 
 	/* Reed Solomon Code Parameters */
-	const std::size_t code_length = 255;
-	const std::size_t fec_length  =  32;
+	const std::size_t code_length = 32;
+	const std::size_t fec_length  =  6;
 	const std::size_t data_length = code_length - fec_length;
 
     /* Instantiate Finite Field and Generator Polynomials */
@@ -85,8 +86,8 @@ int main()
     }
 
     /* Instantiate Encoder and Decoder (Codec) */
-    typedef schifra::reed_solomon::encoder<code_length,fec_length,data_length> encoder_t;
-    typedef schifra::reed_solomon::decoder<code_length,fec_length,data_length> decoder_t;
+    typedef schifra::reed_solomon::shortened_encoder<code_length,fec_length,data_length> encoder_t;
+    typedef schifra::reed_solomon::shortened_decoder<code_length,fec_length,data_length> decoder_t;
 
     const encoder_t encoder(field, generator_polynomial);
     const decoder_t decoder(field, generator_polynomial_index);
@@ -95,7 +96,7 @@ int main()
 	typedef schifra::reed_solomon::block<code_length,fec_length> myblock;
 
 	char *packet = (char *)malloc(sizeof(char) * (code_length));
-	int socket = initiateServer(TCP_PORT);
+	//int socket = initiateServer(TCP_PORT);
 
 	std::string corrected = "";
 	corrected.resize(data_length, 0x00);
@@ -134,38 +135,17 @@ int main()
 			std::cout << "Error - Critical decoding failure! "
 					  << "Msg: " << blocked.error_as_string() << std::endl;
 			correct = false;
-		} else if(!schifra::is_block_equivelent(blocked, spacket)) {
-			std::cout << "Error - Error correction failed! " << std::endl;
-			correct = false;
 		}
 
+		printf("BOOL: %u", blocked.data_to_string(corrected));
 		printf("\n\n Corrected packet:  \n");
+
 		size = (unsigned char) corrected[PAYLOAD];
 		std::cout << " [ " << corrected.substr(0, size) << " ] " << std::endl;
 		printf("\n\n Size: %u", size);
 
 		fwrite((char *)corrected.substr(0, size).c_str(), sizeof(char), size, outputFile);
 		counter++;
-		
-		// Simulem tambe que a vegades no el rep, ni be ni malament: no fa res amb probabilitat p
-		/*float p = 0.01;
-		if(correct == false){
-			// Send NACK
-			send_nack(socket)
-		}
-		else{
-			// Send ACK
-			send_ack(socket)
-
-	        printf("\n\n Corrected packet:  \n");
-			size = (unsigned char) corrected[PAYLOAD];
-			std::cout << " [ " << corrected.substr(0, size) << " ] " << std::endl;
-			printf("\n\n Size: %u", size);
-			
-	        fwrite((char *)corrected.substr(0, size).c_str(), sizeof(char), size, outputFile);
-	        counter++;
-
-		}*/
 	}
 
 	if (outputFile != NULL)
