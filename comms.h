@@ -9,4 +9,12 @@ int isAck(char *r_ack);
 
 int get_ack_label(char *r_ack);
 
+void sendAck(int socket, bool is_ack);
+
+int read_with_timeout(int socket, int timeout, char *packet, int code_length, int *ret);
+
+int send (char *text, int len, int sockfd);
+
+int receive(char *buffer, int len, int sockfd);
+
 #endif
