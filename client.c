@@ -1,5 +1,4 @@
 #include "client.h"
-#include "comms.h"
 
 #include <cstdio>
 #include <sys/types.h>
@@ -33,11 +32,11 @@ int initiateSocket(char *ip, int port)
          (char *)&serv_addr.sin_addr.s_addr,
          server->h_length);
     serv_addr.sin_port = htons(portno);
-    if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
-        printf("ERROR connecting");
-
-
-    printf("You are connected \n");
+    int info=connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr));
+    if (info < 0)
+        printf("ERROR connecting\n");
+    else
+        printf("You are connected \n");
     return sockfd;
 }
 
@@ -55,25 +54,6 @@ int initiateSocket(char *ip, int port)
          printf("ERROR reading from socket");
     printf("%s\n",buffer);
 }*/
-
-int send (char *text, int len, int sockfd, bool noisy_channel) {
-    if(noisy_channel==true){
-        float prob = 0.01;
-        bsc(text, len, prob);
-
-        // See result
-        int i;
-        printf("\n");
-        for(i=0; i<len; i++){
-            printf("%c", text[i]);
-        }
-    }
-	return write(sockfd, text, len);
-}
-
-int receive(char *buffer, int len, int sockfd) {
-	return read(sockfd, buffer, len);
-}
 
 
 /*int main (){
