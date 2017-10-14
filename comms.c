@@ -71,13 +71,13 @@ int get_ack_label(char *r_ack) {
 
 int send_channel(char *sequence, int len, int socket){
 	// Simulate noisy channel
-	float prob_error_bit = 0.01;
-	float prob_lost = 0.5;
+	float prob_error_bit = 0.1;
+	float prob_lost = 0;
 	bsc(sequence, len, prob_error_bit);
 
 	// Simulate random drop (loss) of packets with prob 0.2
     double w = (double)rand()/ (double) RAND_MAX;
-    if (w > prob_lost) { 
+    if (w < prob_lost) { 
         printf("\n *** Packet will be lost *** \n");
         // usleep(2000000);
         // continue;
