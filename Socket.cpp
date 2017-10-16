@@ -2,6 +2,8 @@
 
 #include "Socket.hpp"
 
+#include "poll.h"
+
 #include <cstdio>
 #include <sys/types.h> 
 #include <sys/socket.h>
@@ -17,7 +19,8 @@
 
 // TCP Socket
 
-SocketTCP::SocketTCP(char* ip, int port, bool isServer, int bSize): Socket(bSize){
+SocketTCP::SocketTCP(char* ip, bool isServer, int bSize): Socket(bSize){
+	int port = TCP_PORT;
 	if (isServer){
 		int sockfd, newsockfd, portno;
     	socklen_t clilen;
@@ -44,7 +47,7 @@ SocketTCP::SocketTCP(char* ip, int port, bool isServer, int bSize): Socket(bSize
 	         printf("ERROR on accept");	
      	}		
 
-     	socket = newsockfd;
+     	socket_id = newsockfd;
 
      	//newsockfd contains the address of the client we are connected to
 	}else{
@@ -77,42 +80,63 @@ SocketTCP::SocketTCP(char* ip, int port, bool isServer, int bSize): Socket(bSize
 	        printf("You are connected \n");
 	    }
 
-     	socket = sockfd;
+     	socket_id = sockfd;
 
 	    //sockfd contains the serveraddress
      }
 }
 
-void SocketTCP::write(char* buff){
-	int n = write(socket, buff, bufferSize);
+int SocketTCP::write_socket(char* buff){
+	int n = write(socket_id, buff, bufferSize);
     if (n < 0)	
 		printf("ERROR writing to socket");
 
 	return n;	
 }
 
-void SocketTCP::read_blocking(char* buff, int timeout){
+int SocketTCP::read_blocking_socket(char* buff, int timeout){
 		int n = -1;
 	int ret = -1;
 	if (timeout == -1){
-		n = read (socket, buff, bufferSize);
+		n = read (socket_id, buff, bufferSize);
  	}else{
-        n = read_with_timeout(socket, timeout, buff, bufferSize, &ret);
+        n = read_with_timeout(socket_id, timeout, buff, bufferSize, &ret);
  	}
 
  	if (n < 0) printf("ERROR reading from socket");
  	else if (n == 0) printf ("Connection closed");
  	
-	if (ret == 0) printf ("TIMEOUT EXPIRED")
+	if (ret == 0) printf ("TIMEOUT EXPIRED");
 
 	return n;
 }
 
-int SocketTCP::Sread_non_blocking(char* buff){
-	return read (socket, buff, bufferSize);
+int SocketTCP::read_non_blocking_socket(char* buff){
+	return read (socket_id, buff, bufferSize);
 }
 
+int SocketTCP::read_with_timeout(int socket, int timeout, char *packet, int code_length, int *ret){
 
+	struct pollfd fds; // Polling system for timeouts
+    fds.fd = socket;
+    fds.events = POLLIN;
+
+    *ret = poll(&fds, 1, timeout);
+    printf("\n RET %i\n", *ret);
+    int n = -2;
+    switch(*ret) {
+        case -1:
+            printf("\n Error Poll \n");
+            break;
+        case 0:
+            printf("\n Timeout \n");
+            break;
+        default:
+            n = read_non_blocking_socket(packet);
+    }
+    return n;
+        
+}
 /************************************************************************/
 
 // Radio Socket

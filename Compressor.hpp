@@ -17,20 +17,20 @@ class Compressor {
 		virtual void compress(char* input, char* output) = 0;
 		virtual void decompress(char*  input, char* output) = 0;
 
-	private:
+	protected:
 		float compressionRate;
-}
+};
 
 
 /*********************************************************************/
 
 // Compressor 1
 class Compressor1: public Compressor{
-
-	Compressor1(float compRate): Compressor(compRate);
-	void compress(char* input, char* output);
-	void decompress(char*  input, char* output);
-}
+	public:
+		Compressor1(float compRate);
+		void compress(char* input, char* output) override;
+		void decompress(char*  input, char* output) override;
+};
 
 
 #endif
