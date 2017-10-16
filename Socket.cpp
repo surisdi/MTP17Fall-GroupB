@@ -13,6 +13,8 @@
 #include <strings.h>
 #include <cstring>
 
+#include <iostream>
+
 #include <netdb.h>
 
 /*********************************************************************/
@@ -27,7 +29,7 @@ SocketTCP::SocketTCP(char* ip, bool isServer, int bSize): Socket(bSize){
 	    
 	    struct sockaddr_in serv_addr, cli_addr;
 	    int n;
-
+	    std::cout << "Waiting for a connection " << std::endl;
 	    sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	    if (sockfd < 0){
 	       printf("ERROR opening socket");
@@ -57,6 +59,7 @@ SocketTCP::SocketTCP(char* ip, bool isServer, int bSize): Socket(bSize){
 	    struct hostent *server;
 
 	    portno = port;
+	    std::cout << "Trying to connect to a server " << std::endl;
 	    sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	    if (sockfd < 0){
 	        printf("ERROR opening socket");

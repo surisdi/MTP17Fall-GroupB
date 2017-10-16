@@ -17,19 +17,24 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    int bufferSize = 100;
-    bool isServer = true;
-    char* ip = (char*)"localhost";
-    Socket *socket = new SocketTCP(ip, isServer, bufferSize);
-
     float compressionRate = 0.8;
     Compressor *compressor = new Compressor1(compressionRate);
 
     Encoder *encoder = new EncoderReedSolomon();
 
-    Protocol *protocol = new ProtocolStopWait(socket, compressor, encoder);
+    Protocol *protocol;
+    Socket *socket;
 
     if(argv[1] == "tx"){
+
+        int bufferSize = 100;
+        bool isServer = true;
+        char* ip = (char*)"localhost";
+
+        socket = new SocketTCP(ip, isServer, bufferSize);
+
+        protocol = new ProtocolStopWait(socket, compressor, encoder);
+
         char* file_name = (char*)"";
         if(argc > 2){
             file_name = argv[2];
@@ -43,6 +48,15 @@ int main(int argc, char* argv[])
         int sent_ok = protocol->send_text(file_name);
 
     }else{ // rx
+
+        int bufferSize = 100;
+        bool isServer = false;
+        char* ip = (char*)"localhost";
+        Socket *socket = new SocketTCP(ip, isServer, bufferSize);
+
+        Protocol *protocol = new ProtocolStopWait(socket, compressor, encoder);
+
+
         int received_ok = protocol->receive_text();
     }
 
