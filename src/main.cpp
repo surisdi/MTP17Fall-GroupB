@@ -1,16 +1,11 @@
-//============================================================================
-// Name        : main.cpp
-// Author      : Genis Floriach
-// Version     :
-// Copyright   : 
-//============================================================================
+// main.cpp
 
 #include <iostream>
 
-#include "StopWait.h"
-#include "EncoderRS.h"
-#include "Compressor1.h"
-#include "SocketTCP.h"
+#include "Protocol.hpp"
+#include "Encoder.hpp"
+#include "Compressor.hpp"
+#include "Socket.hpp"
 
 using namespace std;
 
@@ -18,7 +13,7 @@ int main() {
 
 	Compressor1 compress(3.0, 4);
 	EncoderRS rs(4, 3);
-	SocketTCP mysocket;
+	SocketTCP mysocket(10);
 
 	StopWait protocol(&compress, &rs, &mysocket);
 	protocol.send_text(0);

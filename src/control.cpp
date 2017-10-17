@@ -2,7 +2,9 @@
 
 #include "control.hpp"
 
-namespace control{
+namespace control
+{
 
 	void led_on(){}
+
 }

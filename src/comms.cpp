@@ -2,10 +2,10 @@
 
 #include "comms.hpp"
 
-namespace comms{
-	void create_ack(){
+namespace comms
+{
 
-	}
+	void create_ack(){}
 
 	int is_ack(char *r_ack) {
 
@@ -27,6 +27,6 @@ namespace comms{
 	}
 
 	int crete_packet(){
-
+		return 0;
 	}
 }
