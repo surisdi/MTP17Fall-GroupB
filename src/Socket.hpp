@@ -3,6 +3,9 @@
 #ifndef SOCKET_H_
 #define SOCKET_H_
 
+#define TCP_PORT 2222
+#define PAYLOAD 25
+
 /***************** Base Class Socket *****************/
 
 class Socket {
@@ -17,7 +20,7 @@ public:
 
 	virtual int read_non_blocking(char *buff) = 0;
 
-	virtual int write(const char *buff) = 0;
+	virtual int write_socket(const char *buff) = 0;
 
 	virtual ~Socket();
 };
@@ -26,15 +29,18 @@ public:
 
 class SocketTCP: public Socket {
 public:
-	SocketTCP(int bSize);
+	SocketTCP(char* ip, bool isServer, int bSize);
 
 	virtual int read_blocking(char *buff, int timeout) override;
 
 	virtual int read_non_blocking(char *buff) override;
 
-	virtual int write(const char *buff) override;
+	virtual int write_socket(const char *buff) override;
 
 	virtual ~SocketTCP();
+
+private:
+	int read_with_timeout(int socket, int timeout, char *packet, int code_length, int *ret);
 };
 
 #endif /* SOCKET_H_ */
