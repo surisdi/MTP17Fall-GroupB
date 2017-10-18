@@ -19,15 +19,14 @@
 
 /***************** Base Class Socket *****************/
 
-Socket::Socket(int bSize): bufferSize(bSize),
+Socket::Socket():
 socket_id(0) {}
 
 Socket::~Socket() {}
 
-
 /***************** Derived Class SocketTCP *****************/
 
-SocketTCP::SocketTCP(char* ip, bool isServer, int bSize): Socket(bSize){
+SocketTCP::SocketTCP(char* ip, bool isServer): Socket(){
 	int port = TCP_PORT;
 	if (isServer){
 		int sockfd, newsockfd, portno;
@@ -52,7 +51,9 @@ SocketTCP::SocketTCP(char* ip, bool isServer, int bSize): Socket(bSize){
 	    clilen = sizeof(cli_addr);
 	    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 	    if (newsockfd < 0){
-	         printf("ERROR on accept");
+	        printf("ERROR on accept");
+     	}else{
+     		printf("You are connected \n");
      	}
 
      	socket_id = newsockfd;
@@ -95,55 +96,33 @@ SocketTCP::SocketTCP(char* ip, bool isServer, int bSize): Socket(bSize){
      }
 }
 
-// ret = -1 llavors el else perque esta??
-int SocketTCP::read_blocking(char* buff, int timeout){
-	int n = -1;
-	int ret = -1;
-	if (timeout == -1){
-		n = read (socket_id, buff, bufferSize);
- 	}else{
-        n = read_with_timeout(socket_id, timeout, buff, bufferSize, &ret);
- 	}
-
- 	if (n < 0) printf("ERROR reading from socket");
- 	else if (n == 0) printf ("Connection closed");
-
-	if (ret == 0) printf ("TIMEOUT EXPIRED");
-
-	return n;
-}
-
-
-// Justament tal i com esta implementat és super blocking ¿¿??
-int SocketTCP::read_non_blocking(char* buff){
-	return read (socket_id, buff, bufferSize);
-}
-
-int SocketTCP::read_with_timeout(int socket, int timeout, char *packet, int code_length, int *ret){
+int SocketTCP::read_non_blocking(char* buff, int len, int timeout, int *timeout_info){
 
 	struct pollfd fds; // Polling system for timeouts
-    fds.fd = socket;
+    fds.fd = socket_id;
     fds.events = POLLIN;
 
-    *ret = poll(&fds, 1, timeout);
-    printf("\n RET %i\n", *ret);
+    *timeout_info = poll(&fds, 1, timeout);
+    printf("\n RET %i\n", *timeout_info);
     int n = -2;
-    switch(*ret) {
+    switch(*timeout_info) {
         case -1:
             printf("\n Error Poll \n");
             break;
         case 0:
-            printf("\n Timeout \n");
+            printf("\n Timeout Expired \n");
             break;
         default:
-            n = read_non_blocking(packet);
+            n = read(socket_id, buff, len);
     }
-    return n;
-
 }
 
-int SocketTCP::write_socket(const char* buff){
-	int n = write(socket_id, buff, bufferSize);
+int SocketTCP::read_blocking(char* buff, int len){
+	return read (socket_id, buff, len);
+}
+
+int SocketTCP::write_socket(const char* buff, int len){
+	int n = write(socket_id, buff, len);
     if (n < 0)
 		printf("ERROR writing to socket");
 

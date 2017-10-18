@@ -11,16 +11,15 @@
 class Socket {
 protected:
 	int socket_id;
-	int bufferSize;
 
 public:
-	Socket(int bSize);
+	Socket();
+	
+	virtual int read_blocking(char *buff, int len) = 0;
 
-	virtual int read_blocking(char *buff, int timeout) = 0;
+	virtual int read_non_blocking(char *buff, int len, int timeout, int *timeout_info) = 0;
 
-	virtual int read_non_blocking(char *buff) = 0;
-
-	virtual int write_socket(const char *buff) = 0;
+	virtual int write_socket(const char *buff, int len) = 0;
 
 	virtual ~Socket();
 };
@@ -29,18 +28,15 @@ public:
 
 class SocketTCP: public Socket {
 public:
-	SocketTCP(char* ip, bool isServer, int bSize);
+	SocketTCP(char* ip, bool isServer);
 
-	virtual int read_blocking(char *buff, int timeout) override;
+	virtual int read_blocking(char *buff, int len) override;
 
-	virtual int read_non_blocking(char *buff) override;
+	virtual int read_non_blocking(char *buff, int len, int timeout, int *timeout_info) override;
 
-	virtual int write_socket(const char *buff) override;
+	virtual int write_socket(const char *buff, int len) override;
 
 	virtual ~SocketTCP();
-
-private:
-	int read_with_timeout(int socket, int timeout, char *packet, int code_length, int *ret);
 };
 
 #endif /* SOCKET_H_ */

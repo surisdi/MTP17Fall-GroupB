@@ -30,6 +30,7 @@ int StopWait::receive_text()
 
 int StopWait::send_text(const char *text) {
 	std::cout << "Sending text..." << std::endl;
+
 	return 0;
 }
 

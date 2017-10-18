@@ -22,10 +22,10 @@ int main(int argc, char* argv[])
 	if(string(argv[1]) == "tx") {
 
 		int bufferSize = 100;
-		bool isServer = true;
+		bool isServer = false;
 		char ip[] = "localhost";
 
-		SocketTCP socket(ip, isServer, bufferSize);
+		SocketTCP socket(ip, isServer);
 
 		StopWait protocol(&compressor, &encoder, &socket);
 
@@ -44,12 +44,11 @@ int main(int argc, char* argv[])
 	}else { // rx
 
 		int bufferSize = 100;
-		bool isServer = false;
+		bool isServer = true;
 		char ip[] = "localhost";
 
-		SocketTCP socket(ip, isServer, bufferSize);
+		SocketTCP socket(ip, isServer);
 		StopWait protocol(&compressor, &encoder, &socket);
-
 
 		int received_ok = protocol.receive_text();
 	}
