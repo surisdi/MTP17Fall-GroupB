@@ -5,33 +5,20 @@
 
 /***************** Base Class Compressor *****************/
 
-Encoder::Encoder(int code_l, int redun):
-code_length(code_l), redundancy(redun) {}
+Encoder::Encoder(){}
 
 Encoder::~Encoder() {}
 
 /***************** Derived Class Compressor1 *****************/
 
-EncoderRS::EncoderRS(int code_l, int redun):
-Encoder(code_l, redun)
+EncoderRS::EncoderRS()
 {
-	/* Finite Field Parameters */
-    const std::size_t field_descriptor                =   8;
-    const std::size_t generator_polynomial_index      = 120;
-    const std::size_t generator_polynomial_root_count =  6;
+	field = schifra::galois::field(field_descriptor,
+			schifra::galois::primitive_polynomial_size06,
+			schifra::galois::primitive_polynomial06);
 
-    /* Reed Solomon Code Parameters */
-    code_length = code_l;
-    fec_length  = redun;
-    data_length = code_length - fec_length;
-
-    /* Instantiate Finite Field and Generator Polynomials */
-    const schifra::galois::field field(field_descriptor,
-                                  schifra::galois::primitive_polynomial_size06,
-                                  schifra::galois::primitive_polynomial06);
-
-    schifra::galois::field_polynomial generator_polynomial(field);
-
+	generator_polynomial = schifra::galois::field_polynomial(field);
+	ack_generator_polynomial = schifra::galois::field_polynomial(field);
     if (
         !schifra::make_sequential_root_generator_polynomial(field,
                                                             generator_polynomial_index,
@@ -40,58 +27,98 @@ Encoder(code_l, redun)
        )
     {
       std::cout << "Error - Failed to create sequential root generator!" << std::endl;
-      return 1;
     }
 
-    /* Instantiate Encoder and Decoder (Codec) */
-    encoder<code_length,fec_length,data_length>(field, generator_polynomial);
-    decoder<code_length,fec_length,data_length>(field, generator_polynomial_index);
+    if (
+		!schifra::make_sequential_root_generator_polynomial(field,
+															generator_polynomial_index,
+															ack_generator_polynomial_root_count,
+															ack_generator_polynomial)
+	   )
+	{
+	  std::cout << "Error - Failed to create sequential root generator!" << std::endl;
+	}
 
-	std::cout << "Reed Solomon encoder created..." << std::endl;
+    encoder = encoder_t(field, generator_polynomial);
+    decoder = decoder_t(field, generator_polynomial_index);
+
+    ack_encoder = ack_encoder_t(field, ack_generator_polynomial);
+    ack_decoder = ack_decoder_t(field, generator_polynomial_index);
+
+    corrected.resize(s_code.data_length, 0x00);
+    ack_corrected.resize(s_ack.data_length, 0x00);
 }
 
 int EncoderRS::encode(const char *input, char *output)
 {
 	std::cout << "RSEncoding..." << std::endl;
 
-	encoder.encode(input, encoder_block);
-    for (int k=0; k < code_length; k++) {
-        output[k] = encoder_block[k];
-    }
+	spacket.assign(input, s_code.code_length);
+	encoder.encode(input, block);
+	for (int k=0; k < s_code.code_length; k++) {
+		output[k] = block[k];
+	}
         
+	return 0;
+}
+
+int EncoderRS::encode_ack(const char *input, char *output)
+{
+	spacket.assign(input, s_ack.code_length);
+	ack_encoder.encode(input, ack_block);
+	for (int k=0; k < s_ack.code_length; k++) {
+		output[k] = ack_block[k];
+	}
+
 	return 0;
 }
 
 int EncoderRS::decode(const char *input, char *output)
 {
 	int error = 0;
-	std::string corrected = "";
-	corrected.resize(data_length, 0x00);
 
-	std::cout << "RSDecoding..." << std::endl;
+	spacket.assign(input, s_code.code_length);
+	data = spacket.substr(0, s_code.data_length);
+	fec = spacket.substr(s_code.data_length, s_code.fec_length);
 
-    spacket.assign(packet, code_length);
-    data = spacket.substr(0, data_length);
-    fec = spacket.substr(data_length, fec_length);
-    
-    myblock blocked<code_length,fec_length>(data ,fec);
+    block = schifra::reed_solomon::block<s_code.code_length,s_code.fec_length>(data, fec);
 
-	if(!decoder.decode(blocked)) {
+	if(!decoder.decode(block)) {
 		std::cout << "Error - Critical decoding failure! "
-				  << "Msg: " << blocked.error_as_string() << std::endl;
-		error = 1;
-
-	} else if(!schifra::is_block_equivelent(blocked, spacket)) {
-		std::cout << "Error - Error correction failed! " << std::endl;
+				  << "Msg: " << block.error_as_string() << std::endl;
 		error = 1;
 
 	} else{
-		blocked.data_to_string(corrected);
+		block.data_to_string(corrected);
 		output = (char *)corrected;
-		std::cout << "Decoded Correctly" << std::endl;
+	}
 
 	return error;
 }
+
+int EncoderRS::decode_ack(const char *input, char *output)
+{
+	int error = 0;
+
+	spacket.assign(input, s_ack.code_length);
+	data = spacket.substr(0, s_ack.data_length);
+	fec = spacket.substr(s_ack.data_length, s_ack.fec_length);
+
+    ack_block = schifra::reed_solomon::block<s_ack.code_length,s_ack.fec_length>(data, fec);
+
+	if(!ack_decoder.decode(ack_block)) {
+		std::cout << "Error - Critical decoding failure! "
+				  << "Msg: " << ack_block.error_as_string() << std::endl;
+		error = 1;
+
+	} else{
+		ack_block.data_to_string(ack_corrected);
+		output = (char *)ack_corrected;
+	}
+
+	return error;
+}
+
 
 EncoderRS::~EncoderRS() {
 	std::cout << "EncodeRS destroyed..." << std::endl;
