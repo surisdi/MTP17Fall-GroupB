@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
 	}
 
 	Compressor1 compressor(0.8, 5);
-	EncoderRS encoder(4, 3);
+	EncoderDummy encoder;
 
 	if(string(argv[1]) == "tx") {
 
@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 		bool isServer = false;
 		char ip[] = "localhost";
 
-		SocketTCP socket(ip, isServer);
+		SocketRadio socket;
 
 		StopWait protocol(&compressor, &encoder, &socket);
 

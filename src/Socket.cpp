@@ -17,12 +17,82 @@
 
 #include <netdb.h>
 
+#include <RF24/RF24.h>
+
 /***************** Base Class Socket *****************/
 
-Socket::Socket():
-socket_id(0) {}
 
-Socket::~Socket() {}
+/***************** Derived Class SocketTCP *****************/
+
+SocketRadio::SocketRadio(): Socket(){
+	// Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz 
+	radio = new RF24(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
+
+	// Radio pipe addresses for the 2 nodes to communicate. 
+	const uint64_t addresses[2] = { 0xABCDABCD71LL, 0x544d52687CLL };
+	
+	radio->begin();
+	radio->setChannel(1);
+	radio->setPALevel(RF24_PA_MAX);
+	radio->setDataRate(RF24_1MBPS);
+	radio->setAutoAck(1);
+	radio->setRetries(2,15);
+	radio->setCRCLength(RF24_CRC_8);
+	// radio->printDetails();
+	
+	bool is_transmiter = true;
+	bool is_receiver = false;
+	
+	if(is_transmiter){
+		radio->openWritingPipe(addresses[0]);
+		radio->openReadingPipe(1, addresses[1]);
+		radio->startListening();
+	}
+	if(is_receiver){
+		radio->openWritingPipe(addresses[1]);
+		radio->openReadingPipe(1,addresses[0]);
+		radio->stopListening();
+	}
+}
+
+
+int SocketRadio::read_blocking(char *buff, int len){
+	while(!radio->available()){
+		sleep(1);
+	}
+	while(radio->available()){
+		radio->read(&buff, len);
+	}
+	return 0;
+}
+
+int SocketRadio::read_non_blocking(char *buff, int len, int timeout, int *timeout_info){
+	unsigned long startTime = millis();
+	*timeout_info = 0;
+	while(!radio->available()){
+		if(millis()-startTime > timeout){
+			*timeout_info = 1;
+			break;
+		}
+		sleep(1);
+	}
+	while(radio->available()){
+		radio->read(&buff, len);
+	}
+	return 0;
+}
+
+int SocketRadio::write_socket(const char *buff, int len){
+	// Open writing pipe
+	//TODO check the address for possible problems with the role
+	return radio->writeFast(&buff, len);
+}
+
+SocketRadio::~SocketRadio() {
+	
+}
+
+
 
 /***************** Derived Class SocketTCP *****************/
 
@@ -103,7 +173,7 @@ int SocketTCP::read_non_blocking(char* buff, int len, int timeout, int *timeout_
     fds.events = POLLIN;
 
     *timeout_info = poll(&fds, 1, timeout);
-    printf("\n RET %i\n", *timeout_info);
+    printf("\n Timeout info: %i\n", *timeout_info);
     int n = -2;
     switch(*timeout_info) {
         case -1:
@@ -115,6 +185,8 @@ int SocketTCP::read_non_blocking(char* buff, int len, int timeout, int *timeout_
         default:
             n = read(socket_id, buff, len);
     }
+
+    return 0;
 }
 
 int SocketTCP::read_blocking(char* buff, int len){

@@ -8,6 +8,8 @@ namespace comms
 	void create_ack(){}
 
 	int is_ack(char *r_ack) {
+		char ack[4] = {'G','O','O','D'};
+		char nack[4] = {'B', 'A','A','D'};
 
 	    int is_ack = 1, is_nack = 1;
 	    int i = 0;

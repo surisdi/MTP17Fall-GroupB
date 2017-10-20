@@ -1,8 +1,9 @@
 // comms.hpp
 
+#ifndef COMMS_H
+#define COMMS_H
+
 #define L_ACK 4
-char ack[4] = {'G','O','O','D'};
-char nack[4] = {'B', 'A','A','D'};
 
 namespace comms{
 
@@ -19,3 +20,5 @@ namespace comms{
 	int is_ack(char* r_ack);
 	int crete_packet();
 }
+
+#endif

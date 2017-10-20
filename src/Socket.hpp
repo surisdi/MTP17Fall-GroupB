@@ -3,6 +3,7 @@
 #ifndef SOCKET_H_
 #define SOCKET_H_
 
+#include <RF24/RF24.h>
 #define TCP_PORT 2222
 #define PAYLOAD 25
 
@@ -39,4 +40,23 @@ public:
 	virtual ~SocketTCP();
 };
 
-#endif /* SOCKET_H_ */
+/***************** Derived Class Socket Radio *****************/
+
+class SocketRadio: public Socket {
+
+private:
+	RF24 *radio;
+public:
+	SocketRadio();
+
+	virtual int read_blocking(char *buff, int len) override;
+
+	virtual int read_non_blocking(char *buff, int len, int timeout, int *timeout_info) override;
+
+	virtual int write_socket(const char *buff, int len) override;
+
+	virtual ~SocketRadio();
+	
+};
+
+#endif

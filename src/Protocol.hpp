@@ -19,7 +19,7 @@ protected:
 public:
 	Protocol(Compressor *, Encoder *, Socket *);
 
-	virtual int send_text(const char*) = 0;
+	virtual int send_text(char*) = 0;
 	
 	virtual int receive_text() = 0;
 
@@ -33,7 +33,7 @@ class StopWait: public Protocol {
 public:
 	StopWait(Compressor *comp, Encoder *enc, Socket *sck);
 
-	virtual int send_text(const char *text) override;
+	virtual int send_text(char *text) override;
 	
 	virtual int receive_text() override;
 	
@@ -41,4 +41,4 @@ public:
 };
 
 
-#endif /* PROTOCOL_H_ */
+#endif 
