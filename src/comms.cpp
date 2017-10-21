@@ -5,6 +5,10 @@
 namespace comms
 {
 
+	extern const int L_ACK = 4;
+	extern const char ack[4] = {'G','O','O','D'};
+	extern const char nack[4] = {'B', 'A','A','D'};
+
 	void create_ack(){}
 
 	int is_ack(char *r_ack) {

@@ -1,7 +1,7 @@
 //Protocol.hpp
 
-#ifndef PROTOCOL_H_
-#define PROTOCOL_H_
+#ifndef PROTOCOL_HPP
+#define PROTOCOL_HPP
 
 #include "Compressor.hpp"
 #include "Socket.hpp"

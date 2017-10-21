@@ -1,7 +1,7 @@
 //Compressor.hpp
 
-#ifndef COMPRESSOR_H_
-#define COMPRESSOR_H_
+#ifndef COMPRESSOR_HPP
+#define COMPRESSOR_HPP
 
 /***************** Base Class Compressor *****************/
 
