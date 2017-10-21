@@ -1,13 +1,12 @@
 // control.hpp
-#ifndef CONTROL_H_
-#define CONTROL_H_
-
+#ifndef CONTROL_HPP
+#define CONTROL_HPP
 
 namespace control
 {
 
 	void led_on();
 
-};
+}
 
 #endif

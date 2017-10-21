@@ -4,10 +4,16 @@
 
 namespace comms
 {
-
-	extern const int L_ACK = 4;
 	extern const char ack[4] = {'G','O','O','D'};
 	extern const char nack[4] = {'B', 'A','A','D'};
+
+	extern const int _code_l= 32;
+	extern const int _fec_l = 6;
+	extern const int _data_l = _code_l - _fec_l;
+
+	extern const int _ack_code_l = 4;
+	extern const int _ack_fec_l = 2;
+	extern const int _ack_data_l = _ack_code_l - _ack_fec_l;
 
 	void create_ack(){}
 

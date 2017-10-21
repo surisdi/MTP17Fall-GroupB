@@ -17,17 +17,86 @@
 
 #include <netdb.h>
 
+
 /***************** Base Class Socket *****************/
+Socket::Socket(){}
+Socket::~Socket(){}
 
-Socket::Socket(int bSize): bufferSize(bSize),
-socket_id(0) {}
+/***************** Derived Class SocketTCP *****************/
 
-Socket::~Socket() {}
+SocketRadio::SocketRadio(): Socket(){
+	// Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz 
+	/*radio = new RF24(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
+
+	// Radio pipe addresses for the 2 nodes to communicate. 
+	const uint64_t addresses[2] = { 0xABCDABCD71LL, 0x544d52687CLL };
+	
+	radio->begin();
+	radio->setChannel(1);
+	radio->setPALevel(RF24_PA_MAX);
+	radio->setDataRate(RF24_1MBPS);
+	radio->setAutoAck(1);
+	radio->setRetries(2,15);
+	radio->setCRCLength(RF24_CRC_8);
+	// radio->printDetails();
+	
+	bool is_transmiter = true;
+	bool is_receiver = false;
+	
+	if(is_transmiter){
+		radio->openWritingPipe(addresses[0]);
+		radio->openReadingPipe(1, addresses[1]);
+		radio->startListening();
+	}
+	if(is_receiver){
+		radio->openWritingPipe(addresses[1]);
+		radio->openReadingPipe(1,addresses[0]);
+		radio->stopListening();
+	}*/
+}
+
+
+int SocketRadio::read_blocking(char *buff, int len){
+	/*while(!radio->available()){
+		sleep(1);
+	}
+	while(radio->available()){
+		radio->read(&buff, len);
+	}*/
+	return 0;
+}
+
+int SocketRadio::read_non_blocking(char *buff, int len, int timeout, int *timeout_info){
+	/*unsigned long startTime = millis();
+	*timeout_info = 0;
+	while(!radio->available()){
+		if(millis()-startTime > timeout){
+			*timeout_info = 1;
+			break;
+		}
+		sleep(1);
+	}
+	while(radio->available()){
+		radio->read(&buff, len);
+	}*/
+	return 0;
+}
+
+int SocketRadio::write_socket(const char *buff, int len){
+	// Open writing pipe
+	//TODO check the address for possible problems with the role
+	//return radio->writeFast(&buff, len);
+}
+
+SocketRadio::~SocketRadio() {
+	
+}
+
 
 
 /***************** Derived Class SocketTCP *****************/
 
-SocketTCP::SocketTCP(char* ip, bool isServer, int bSize): Socket(bSize){
+SocketTCP::SocketTCP(char* ip, bool isServer): Socket(){
 	int port = TCP_PORT;
 	if (isServer){
 		int sockfd, newsockfd, portno;
@@ -52,7 +121,9 @@ SocketTCP::SocketTCP(char* ip, bool isServer, int bSize): Socket(bSize){
 	    clilen = sizeof(cli_addr);
 	    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 	    if (newsockfd < 0){
-	         printf("ERROR on accept");
+	        printf("ERROR on accept");
+     	}else{
+     		printf("You are connected \n");
      	}
 
      	socket_id = newsockfd;
@@ -95,55 +166,35 @@ SocketTCP::SocketTCP(char* ip, bool isServer, int bSize): Socket(bSize){
      }
 }
 
-// ret = -1 llavors el else perque esta??
-int SocketTCP::read_blocking(char* buff, int timeout){
-	int n = -1;
-	int ret = -1;
-	if (timeout == -1){
-		n = read (socket_id, buff, bufferSize);
- 	}else{
-        n = read_with_timeout(socket_id, timeout, buff, bufferSize, &ret);
- 	}
-
- 	if (n < 0) printf("ERROR reading from socket");
- 	else if (n == 0) printf ("Connection closed");
-
-	if (ret == 0) printf ("TIMEOUT EXPIRED");
-
-	return n;
-}
-
-
-// Justament tal i com esta implementat és super blocking ¿¿??
-int SocketTCP::read_non_blocking(char* buff){
-	return read (socket_id, buff, bufferSize);
-}
-
-int SocketTCP::read_with_timeout(int socket, int timeout, char *packet, int code_length, int *ret){
+int SocketTCP::read_non_blocking(char* buff, int len, int timeout, int *timeout_info){
 
 	struct pollfd fds; // Polling system for timeouts
-    fds.fd = socket;
+    fds.fd = socket_id;
     fds.events = POLLIN;
 
-    *ret = poll(&fds, 1, timeout);
-    printf("\n RET %i\n", *ret);
+    *timeout_info = poll(&fds, 1, timeout);
+    printf("\n Timeout info: %i\n", *timeout_info);
     int n = -2;
-    switch(*ret) {
+    switch(*timeout_info) {
         case -1:
             printf("\n Error Poll \n");
             break;
         case 0:
-            printf("\n Timeout \n");
+            printf("\n Timeout Expired \n");
             break;
         default:
-            n = read_non_blocking(packet);
+            n = read(socket_id, buff, len);
     }
-    return n;
 
+    return 0;
 }
 
-int SocketTCP::write_socket(const char* buff){
-	int n = write(socket_id, buff, bufferSize);
+int SocketTCP::read_blocking(char* buff, int len){
+	return read (socket_id, buff, len);
+}
+
+int SocketTCP::write_socket(const char* buff, int len){
+	int n = write(socket_id, buff, len);
     if (n < 0)
 		printf("ERROR writing to socket");
 
