@@ -17,6 +17,8 @@
 
 #include <netdb.h>
 
+#include "RF24/RF24.h"
+
 
 /***************** Base Class Socket *****************/
 Socket::Socket(){}
@@ -26,7 +28,7 @@ Socket::~Socket(){}
 
 SocketRadio::SocketRadio(): Socket(){
 	// Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz 
-	/*radio = new RF24(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
+	radio = new RF24(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
 
 	// Radio pipe addresses for the 2 nodes to communicate. 
 	const uint64_t addresses[2] = { 0xABCDABCD71LL, 0x544d52687CLL };
@@ -52,22 +54,22 @@ SocketRadio::SocketRadio(): Socket(){
 		radio->openWritingPipe(addresses[1]);
 		radio->openReadingPipe(1,addresses[0]);
 		radio->stopListening();
-	}*/
+	}
 }
 
 
 int SocketRadio::read_blocking(char *buff, int len){
-	/*while(!radio->available()){
+	while(!radio->available()){
 		sleep(1);
 	}
 	while(radio->available()){
 		radio->read(&buff, len);
-	}*/
+	}
 	return 0;
 }
 
 int SocketRadio::read_non_blocking(char *buff, int len, int timeout, int *timeout_info){
-	/*unsigned long startTime = millis();
+	unsigned long startTime = millis();
 	*timeout_info = 0;
 	while(!radio->available()){
 		if(millis()-startTime > timeout){
@@ -78,14 +80,14 @@ int SocketRadio::read_non_blocking(char *buff, int len, int timeout, int *timeou
 	}
 	while(radio->available()){
 		radio->read(&buff, len);
-	}*/
+	}
 	return 0;
 }
 
 int SocketRadio::write_socket(const char *buff, int len){
 	// Open writing pipe
 	//TODO check the address for possible problems with the role
-	//return radio->writeFast(&buff, len);
+	return radio->writeFast(&buff, len);
 }
 
 SocketRadio::~SocketRadio() {

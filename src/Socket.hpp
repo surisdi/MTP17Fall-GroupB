@@ -6,6 +6,10 @@
 #define TCP_PORT 2222
 #define PAYLOAD 25
 
+
+#include "RF24/RF24.h"
+
+
 /***************** Base Class Socket *****************/
 
 class Socket {
@@ -44,6 +48,7 @@ public:
 class SocketRadio: public Socket {
 
 private:
+	RF24* radio;
 public:
 	SocketRadio();
 
