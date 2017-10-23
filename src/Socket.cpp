@@ -48,17 +48,18 @@ SocketRadio::SocketRadio(): Socket(){
 	if(is_transmiter){
 		radio->openWritingPipe(addresses[0]);
 		radio->openReadingPipe(1, addresses[1]);
-		radio->startListening();
+		radio->stopListening();
 	}
 	if(is_receiver){
 		radio->openWritingPipe(addresses[1]);
 		radio->openReadingPipe(1,addresses[0]);
-		radio->stopListening();
+		radio->startListening();
 	}
 }
 
 
 int SocketRadio::read_blocking(char *buff, int len){
+	radio->startListening();
 	while(!radio->available()){
 		sleep(1);
 	}
@@ -69,6 +70,7 @@ int SocketRadio::read_blocking(char *buff, int len){
 }
 
 int SocketRadio::read_non_blocking(char *buff, int len, int timeout, int *timeout_info){
+	radio->startListening();
 	unsigned long startTime = millis();
 	*timeout_info = 0;
 	while(!radio->available()){
@@ -85,6 +87,7 @@ int SocketRadio::read_non_blocking(char *buff, int len, int timeout, int *timeou
 }
 
 int SocketRadio::write_socket(const char *buff, int len){
+	radio->stopListening();
 	// Open writing pipe
 	//TODO check the address for possible problems with the role
 	return radio->writeFast(&buff, len);
