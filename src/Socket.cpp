@@ -28,20 +28,23 @@ Socket::~Socket(){}
 
 SocketRadio::SocketRadio(): Socket(){
 	// Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz 
-	radio = new RF24(RPI_V2_GPIO_P1_15, RPI_V2_GPIO_P1_24, BCM2835_SPI_SPEED_8MHZ);
+	radio = new RF24(25, 0);
 
 	// Radio pipe addresses for the 2 nodes to communicate. 
 	const uint64_t addresses[2] = { 0xABCDABCD71LL, 0x544d52687CLL };
 	
+
 	radio->begin();
-	radio->setChannel(1);
+	radio->setChannel(97);
 	radio->setPALevel(RF24_PA_MIN);
 	radio->setDataRate(RF24_1MBPS);
-	radio->setAutoAck(1);
-	radio->setRetries(2,15);
+	radio->setAutoAck(0);
+	//radio->setRetries(2,15);
 	radio->setCRCLength(RF24_CRC_8);
-	// radio->printDetails();
 	
+	radio->printDetails();
+
+
 	bool is_transmiter = true;
 	bool is_receiver = false;
 	
@@ -75,15 +78,15 @@ int SocketRadio::read_non_blocking(char *buff, int len, int timeout, int *timeou
 	*timeout_info = 0;
 	while(!radio->available()){
 		if(millis()-startTime > timeout){
-			*timeout_info = 1;
-			break;
+			return -1;
 		}
 		sleep(1);
 	}
 	while(radio->available()){
+		*timeout_info = 1;
 		radio->read(&buff, len);
 	}
-	return 0;
+	return 1;
 }
 
 int SocketRadio::write_socket(const char *buff, int len){

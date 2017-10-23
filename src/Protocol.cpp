@@ -150,11 +150,11 @@ int StopWait::send_text(char *text) {
 
         /* Passar pel canal i enviar*/
         // El canal genera errors per bit i amb certa probabilitat fa drop del paquet
-        utils::bsc(packet, comms::_code_l, 0.0);
-        double w = (double)rand()/ (double) RAND_MAX;
-        if (w>0.5){
+        //utils::bsc(packet, comms::_code_l, 0.0);
+        //double w = (double)rand()/ (double) RAND_MAX;
+        //if (w>0.5){
         	socket->write_socket(packet, comms::_code_l);
-        }
+        //}
         
 
         //WAITING FOR ACK
@@ -166,6 +166,8 @@ int StopWait::send_text(char *text) {
 
         if (ret == 0) {
             // Timeout: send again
+            printf("\n Timeout expired, resending \n");
+
             continue;
         }
         
@@ -173,6 +175,7 @@ int StopWait::send_text(char *text) {
             printf("\n Connection closed \n");
             break;  
         }
+
 
         // Check ACK
         int c = comms::is_ack(packet_ack);
