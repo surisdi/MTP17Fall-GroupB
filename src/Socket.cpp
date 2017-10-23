@@ -35,7 +35,7 @@ SocketRadio::SocketRadio(): Socket(){
 	
 	radio->begin();
 	radio->setChannel(1);
-	radio->setPALevel(RF24_PA_MAX);
+	radio->setPALevel(RF24_PA_MIN);
 	radio->setDataRate(RF24_1MBPS);
 	radio->setAutoAck(1);
 	radio->setRetries(2,15);
