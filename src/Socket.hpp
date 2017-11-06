@@ -71,7 +71,8 @@ public:
 
 private:
 
-    struct sockaddr_in si_other_, si_me_;
+    struct sockaddr_in si_other_tx_, si_other_rx_, si_me_rx_;
+    int socket_id_rx, socket_id_tx;
 };
 
 

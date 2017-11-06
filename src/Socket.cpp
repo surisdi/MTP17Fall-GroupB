@@ -246,52 +246,52 @@ SocketTCP::~SocketTCP() {
 
 SocketUDP::SocketUDP(bool mode, char* ip): Socket(mode){
 
-    int s;
-
-    if (mode == 0){ //Server
-        struct sockaddr_in si_other, si_me;
-
-        
-        if((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
-            std::cout << "Error in socket" << std::endl;
-        }
-
-        memset((char*) &si_me, 0, sizeof(si_me));
-        si_me.sin_family = AF_INET;
-        si_me.sin_port = htons(PORT1);
-        si_me.sin_addr.s_addr = htonl(INADDR_ANY);
-        if(bind(s, (sockaddr*)&si_me, sizeof(si_me))==-1){
-            std::cout << "Error in bind" << std::endl;
-        }
-        si_me_ = si_me;
-
-        
-
-    } else{
-        struct sockaddr_in si_other, si_me;
-
-        if((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
-            std::cout << "Error in socket" << std::endl;
-        }
-        memset((char*) &si_other, 0, sizeof(si_other));
-        si_other.sin_family = AF_INET;
-        si_other.sin_port = htons(PORT1);
-
-        if (inet_aton(ip, &si_other.sin_addr)==0){
-            std::cout << "Error" << std::endl;
-        }
-        si_other_ = si_other;
-        si_me_ = si_me; 
+    int PORT_TX=PORT1, PORT_RX=PORT2;
+    if (mode){ //tx
+        PORT_TX=PORT2;
+        PORT_RX=PORT1;
     }
 
-    socket_id = s;
+    int s_rx, s_tx;
+    struct sockaddr_in si_other_tx, si_other_rx, si_me_rx;
+
+    // Creacio servidor
+    if((s_rx=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
+        std::cout << "Error in socket" << std::endl;
+    }
+
+    memset((char*) &si_me_rx, 0, sizeof(si_me_rx));
+    si_me_rx.sin_family = AF_INET;
+    si_me_rx.sin_port = htons(PORT_RX);
+    si_me_rx.sin_addr.s_addr = htonl(INADDR_ANY);
+    if(bind(s_rx, (sockaddr*)&si_me_rx, sizeof(si_me_rx))==-1){
+        std::cout << "Error in bind" << std::endl;
+    }
+
+    // Creacio client
+    if((s_tx=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
+        std::cout << "Error in socket" << std::endl;
+    }
+    memset((char*) &si_other_tx, 0, sizeof(si_other_tx));
+    si_other_tx.sin_family = AF_INET;
+    si_other_tx.sin_port = htons(PORT_TX);
+
+    if (inet_aton(ip, &si_other_tx.sin_addr)==0){
+        std::cout << "Error" << std::endl;
+    }
+
+    si_me_rx_ = si_me_rx;
+    si_other_tx_ = si_other_tx;
+    si_other_rx_ = si_other_rx;
+    socket_id_tx = s_tx;
+    socket_id_rx = s_rx;
 
 }
 
 bool SocketUDP::read_non_blocking(char* buff, int len, int timeout, int *timeout_info){
     struct pollfd fds; // Polling system for timeouts
-    unsigned int slen=sizeof(si_other_);
-    fds.fd = socket_id;
+    unsigned int slen=sizeof(si_other_rx_);
+    fds.fd = socket_id_rx;
     fds.events = POLLIN;
     
     *timeout_info = poll(&fds, 1, timeout);
@@ -305,22 +305,22 @@ bool SocketUDP::read_non_blocking(char* buff, int len, int timeout, int *timeout
             std::cout << "Timeout Expired " << std::endl;
             break;
         default:
-            return recvfrom (socket_id, buff, len, 0, (sockaddr*)&si_other_, &slen);
+            return recvfrom (socket_id_rx, buff, len, 0, (sockaddr*)&si_other_rx_, &slen);
     }
     
     return 0;
 }
 
 bool SocketUDP::read_blocking(char* buff, int len){
-    unsigned int slen=sizeof(si_other_);
+    unsigned int slen=sizeof(si_other_rx_);
     std::cout << "Read blocking..." << std::endl;
-    return recvfrom (socket_id, buff, len, 0, (sockaddr*)&si_other_, &slen);
+    return recvfrom (socket_id_rx, buff, len, 0, (sockaddr*)&si_other_rx_, &slen);
 }
 
 bool SocketUDP::write_socket(const char* buff, int len, int mode){
-    unsigned int slen=sizeof(si_other_);
-    std::cout << "Write to socket " <<  socket_id << std::endl;
-    int n = sendto(socket_id, buff, len, 0, (sockaddr*)&si_other_, slen);
+    unsigned int slen=sizeof(si_other_tx_);
+    std::cout << "Write to socket " <<  socket_id_tx << std::endl;
+    int n = sendto(socket_id_tx, buff, len, 0, (sockaddr*)&si_other_tx_, slen);
     if (n < 0){
         std::cout << "Error writing to socket" << std::endl;
         return 0;
@@ -332,6 +332,7 @@ bool SocketUDP::write_socket(const char* buff, int len, int mode){
 
 SocketUDP::~SocketUDP() {
     std::cout << "SocketTCP destroyed... " << std::endl;
-    close(socket_id);
+    close(socket_id_tx);
+    close(socket_id_rx);
 }
 
