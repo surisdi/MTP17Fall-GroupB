@@ -1,15 +1,14 @@
+
 //Protocol.cpp
 
 #include <iostream>
 #include "Protocol.hpp"
-#include "comms.hpp"
 #include "utils.hpp"
 
 #include <cstdio>
 #include <cstdlib> // for the random
-
-# define PAYLOAD 25
-# define LEN_ACK 4
+#include <unistd.h>
+#include <bitset>
 
 /***************** Base Class Protocol *****************/
 
@@ -17,6 +16,29 @@ Protocol::Protocol(Compressor *comp, Encoder *enc, Socket *sck):
 compressor(comp),
 encoder(enc),
 socket(sck) {}
+
+int Protocol::isAck(const char* r_ack) {
+        //std::bitset<sizeof(char)> bs(r_ack);
+    //Forgive me god, for i have sinned
+	int n_ones = 0;
+	int n_zeros = 0;
+
+	for (int k = 0; k < 8; k++) {
+		if((*r_ack) & (0x01 << k) != 0) {
+			n_ones++;
+		}
+	}
+
+	if (n_ones > 5) {
+		return 1;
+	}else if(n_ones < 3) {
+		return 0;
+	} else {
+		return -1;
+	}
+}
+
+int Protocol::createPacket(char *){}
 
 Protocol::~Protocol() {}
 
@@ -26,148 +48,127 @@ Protocol::~Protocol() {}
 StopWait::StopWait(Compressor *comp, Encoder *enc, Socket *sck):
 Protocol(comp, enc, sck)
 {
-	std::cout << "Stop and wait created" << std::endl;
+    std::cout << "Stop and wait created" << std::endl;
 }
 
-int StopWait::receive_text()
-{
-	char *packet = (char *)malloc(sizeof(char) * (comms::_code_l));
-	std::string corrected = "";
-	corrected.resize(comms::_data_l, 0x00);
-
-	FILE *outputFile = fopen("output.txt", "w+b");
-	std::string spacket;
-	std::string data;
-	std::string fec;
-
-	int counter = 0;
-	int n;
-	int decode_info;
-	int size;
-	
-	while (true) {
-		
-		// Read packet (blocking)
-		n = socket->read_blocking(packet, comms::_code_l);
-
-        if (n == 0) {
-			printf("\n Connection closed \n");
-			break;	
-		}
-		
-		printf("\n\n*** Received packet %i *** \n", counter);
-		std::cout << packet << std::endl;
-		//print_file(packet, code_length, 0);
-		
-        spacket.assign(packet, comms::_code_l);
-        data = spacket.substr(0, comms::_data_l);
-        //fec = spacket.substr(data_length, fec_length);
+int StopWait::receive_text() {
+    
+    std::cout << "Receiving text..." << std::endl;
+    
+    char packet[utils::CODE_L];
+    char corrected[utils::CODE_L];
+    
+    FILE *outputFile = fopen("output.txt", "w+b");
+    
+    int counter = 0;
+    bool error;
+    bool result;
+    int decode_info;
+    unsigned int size;
+    bool last_packet = false;
+    
+    while (!last_packet) {
+        result = socket->read_blocking(packet, utils::CODE_L);
         
-        decode_info = 0; //encoder->decode(data, corrected);
-        corrected = data;
-
-        if(decode_info == 1){
-        	printf("\n\nPaquet incorrecte:  \n");
-
-			char nack[4] = {'B', 'A','A','D'};
-			socket->write_socket(nack, LEN_ACK);
+        if (!result) {
+            printf("Connection closed \n");
+            break;
+        }
+        
+        printf("*** Received packet %i *** \n", counter);
+        utils::printPacket(packet, utils::CODE_L, 1);
+        
+        error = encoder->decode(packet, corrected);
+        
+        if(error){
+            printf("Paquet incorrecte:  \n");
+            socket->write_socket(&utils::nack, 1, 1);
         }else{
-	        printf("\n\nCorrected packet:  \n");
+            printf("Corrected packet:  \n");
 
-			size = (unsigned char) corrected[PAYLOAD];
-			std::cout << "\n[ " << corrected.substr(0, size) << " ]\n " << std::endl;
-			std::cout << "Size: " << size << std::endl;
+            utils::printPacket(corrected, utils::PAYLOAD_L, 1);
+            size = (unsigned int) corrected[utils::PAYLOAD_L];
 
-	        fwrite((char *)corrected.substr(0, size).c_str(), sizeof(char), size, outputFile);
-	        counter++;
+            if (size > utils::PAYLOAD_L){
+                size = size - 100;
+                last_packet = true;
+            }
+            std::cout << "Size: " << size << std::endl;
 
-	        // Send ACK
-	        char ack[4] = {'G','O','O','D'};
-	        socket->write_socket(ack, LEN_ACK);
+            fwrite(corrected, sizeof(char), size, outputFile);
+            counter++;
 
-		}
-
-	}
-
-	if (outputFile != NULL)
-		fclose(outputFile);
-	else
-		printf("Error writing the file");
-
-	return 0;
-
-
-	std::cout << "Receiving text..." << std::endl;
-	return 0;
+            socket->write_socket(&utils::ack, 1, 1);
+        }
+        
+    }
+    
+    if (outputFile != NULL) {
+        fclose(outputFile);
+        return 1;
+    } else {
+        printf("Error writing the file");
+        return 0;
+    }
+    
 }
 
 int StopWait::send_text(char *text) {
-
-	std::cout << "Sending text..." << std::endl;
-	int len;
-	char *buffer = utils::read_text(text, &len);
-
-	char *data = (char *)malloc(sizeof(char) * (PAYLOAD));
-    char *packet = (char *)malloc(sizeof(char) * comms::_code_l);
-
+    
+    std::cout << "Sending text..." << std::endl;
+    
+    int len;
+    int size;
+    char *buffer = utils::read_text(text, &len);
+    
+    //char data[utils::PAYLOAD_L];
+    char packet[utils::CODE_L];
+    char packet_ack[utils::LEN_ACK];
+    char message[utils::CODE_L];
+    
+    memset(message, 0x00, utils::CODE_L);
+    
     int i = 0; //position in the number of packets
-    int extra = ((len % PAYLOAD) != 0); //extra we need for the last packet
+    int extra = ((len % utils::PAYLOAD_L) != 0); //extra we need for the last packet
     int pay_len; //actual lenght of the payload of the current packet
-
+    
     /* ACK parameters */
-    char *packet_ack = (char *)malloc(sizeof(char) * (LEN_ACK));
-    int timeout = 2000;
+    int timeout = 50;
     int n;
-
-    std::string message; //variable we use to put the data we are going to send
-
-
-    while (i < len / PAYLOAD + extra) {
-
-    	//CREATING PACKET --> CREATE A FUNCTION THAT DOES THIS
+    
+    while (i < len / utils::PAYLOAD_L + extra) {
         
-        data = &buffer[i*PAYLOAD]; //put in data the corresponding part of the file
-        if ( (i + 1) * PAYLOAD > len ) { //Last packet may be smaller
-            pay_len = len - ( i * PAYLOAD ); //Anar amb cuidado de posar els padding bits
+        if ( (i + 1) * utils::PAYLOAD_L > len ) {
+            pay_len = len - ( i * utils::PAYLOAD_L );
         } else {
-            pay_len = PAYLOAD; //if last packet is not smaller, then it has size = PAYLOAD_LEN
+            pay_len = utils::PAYLOAD_L;
         }
-        
-        message.assign(data, pay_len); //put the data we are going to send in a string variable
-        
-        message.resize(comms::_code_l, 0x00); //fill with 0x00 if the data is not long enough to form the packet
-        message[PAYLOAD] = (unsigned char) pay_len; //Add information of the size of the payload
 
-
+        std::copy(&buffer[i*utils::PAYLOAD_L], &buffer[i*utils::PAYLOAD_L+pay_len], message);
+        
+    	if (pay_len < utils::PAYLOAD_L)
+        	message[utils::PAYLOAD_L] = (unsigned char) (pay_len+100); //Add information of the size of the payload
+        else
+        	message[utils::PAYLOAD_L] = (unsigned char) pay_len;
         //ENCODING PACKET
-        encoder->encode((char *)message.c_str(), packet); //use the encoder to encode the information
+        encoder->encode(message, packet); //use the encoder to encode the information
         
-        printf("\n\n *** Packet %i **** \n\n", i);
-        std::cout << " Size: " << pay_len << std::endl;
-        std::cout << message << std::endl;
+	printf("*** Sending packet number %i ***\n", i);
+	utils::printPacket(packet, utils::CODE_L, 1);
 
-        //SENDING PACKET
-
-        /* Passar pel canal i enviar*/
-        // El canal genera errors per bit i amb certa probabilitat fa drop del paquet
-        //utils::bsc(packet, comms::_code_l, 0.0);
-        //double w = (double)rand()/ (double) RAND_MAX;
-        //if (w>0.5){
-        	socket->write_socket(packet, comms::_code_l);
-        //}
+	socket->write_socket(packet, utils::CODE_L, 0);
         
-
+        
         //WAITING FOR ACK
-
+        
         /* Wait for ACK */
         int ret;
-
-        n = socket->read_non_blocking(packet_ack, LEN_ACK, timeout, &ret);
-
+        char *p_packet_ack = packet_ack;
+        n = socket->read_non_blocking(p_packet_ack, utils::LEN_ACK, timeout, &ret);
         if (ret == 0) {
             // Timeout: send again
             printf("\n Timeout expired, resending \n");
-
+            
             continue;
         }
         
@@ -175,10 +176,12 @@ int StopWait::send_text(char *text) {
             printf("\n Connection closed \n");
             break;  
         }
-
-
+        
+        
+        //TODO: implement packetACK
+        
         // Check ACK
-        int c = comms::is_ack(packet_ack);
+        int c = Protocol::isAck(p_packet_ack);
         switch(c){
             case 1: // is ACK
                 printf("ACK received\n");
@@ -189,17 +192,14 @@ int StopWait::send_text(char *text) {
                 break;
             default:
                 printf("Garbage\n");
-        }        
+        }
     }
-
     printf("Finished transmitting!\n");
-
-
-	return 0;
+    return 0;
 }
 
 StopWait::~StopWait() {
-	std::cout << "Stop and Wait destroyed..." << std::endl;
-
+    std::cout << "Stop and Wait destroyed..." << std::endl;
+    
 }
 

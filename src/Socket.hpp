@@ -14,52 +14,54 @@
 
 class Socket {
 protected:
-	int socket_id;
-
+    int socket_id;
+    bool mode;
+    
 public:
-	Socket();
-	
-	virtual int read_blocking(char *buff, int len) = 0;
-
-	virtual int read_non_blocking(char *buff, int len, int timeout, int *timeout_info) = 0;
-
-	virtual int write_socket(const char *buff, int len) = 0;
-
-	virtual ~Socket();
+    Socket(bool mode);
+    
+    virtual bool read_blocking(char *buff, int len) = 0;
+    
+    virtual bool read_non_blocking(char *buff, int len, int timeout, int *timeout_info) = 0;
+    
+    virtual bool write_socket(const char *buff, int len, int mode) = 0;
+    
+    virtual ~Socket();
 };
 
 /***************** Derived Class SocketTCP *****************/
 
 class SocketTCP: public Socket {
 public:
-	SocketTCP(char* ip, bool isServer);
-
-	virtual int read_blocking(char *buff, int len) override;
-
-	virtual int read_non_blocking(char *buff, int len, int timeout, int *timeout_info) override;
-
-	virtual int write_socket(const char *buff, int len) override;
-
-	virtual ~SocketTCP();
+    SocketTCP(bool mode, char* ip, bool isServer);
+    
+    virtual bool read_blocking(char *buff, int len) override;
+    
+    virtual bool read_non_blocking(char *buff, int len, int timeout, int *timeout_info) override;
+    
+    virtual bool write_socket(const char *buff, int len, int mode) override;
+    
+    virtual ~SocketTCP();
 };
 
 /***************** Derived Class Socket Radio *****************/
 
 class SocketRadio: public Socket {
-
+    
 private:
-	RF24* radio;
+    RF24* radio_sender;
+    RF24* radio_ack;
 public:
-	SocketRadio();
-
-	virtual int read_blocking(char *buff, int len) override;
-
-	virtual int read_non_blocking(char *buff, int len, int timeout, int *timeout_info) override;
-
-	virtual int write_socket(const char *buff, int len) override;
-
-	virtual ~SocketRadio();
-	
+    SocketRadio(bool mode);
+    
+    virtual bool read_blocking(char *buff, int len) override;
+    
+    virtual bool read_non_blocking(char *buff, int len, int timeout, int *timeout_info) override;
+    
+    virtual bool write_socket(const char *buff, int len, int mode) override;
+    
+    virtual ~SocketRadio();
+    
 };
 
 #endif

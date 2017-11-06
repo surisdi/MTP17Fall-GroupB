@@ -12,18 +12,22 @@
 class Protocol {
 
 protected:
-	Compressor *compressor;
-	Encoder *encoder;
-	Socket *socket;
+    Compressor *compressor;
+    Encoder *encoder;
+    Socket *socket;
+    
+    int isAck(const char* r_ack);
+    
+    int createPacket(char *);
 
 public:
-	Protocol(Compressor *, Encoder *, Socket *);
+    Protocol(Compressor *, Encoder *, Socket *);
 
-	virtual int send_text(char*) = 0;
-	
-	virtual int receive_text() = 0;
+    virtual int send_text(char*) = 0;
 
-	virtual ~Protocol();
+    virtual int receive_text() = 0;
+
+    virtual ~Protocol();
 };
 
 
@@ -31,13 +35,13 @@ public:
 
 class StopWait: public Protocol {
 public:
-	StopWait(Compressor *comp, Encoder *enc, Socket *sck);
+    StopWait(Compressor *comp, Encoder *enc, Socket *sck);
 
-	virtual int send_text(char *text) override;
-	
-	virtual int receive_text() override;
-	
-	virtual ~StopWait();
+    virtual int send_text(char *text) override;
+
+    virtual int receive_text() override;
+
+    virtual ~StopWait();
 };
 
 
