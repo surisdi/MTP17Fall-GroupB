@@ -28,7 +28,8 @@ int main(int argc, char* argv[])
     
     if(string(argv[1]) == "tx") {
         
-        SocketRadio socket(1);
+        //SocketRadio socket(1);
+	    SocketUDP socket(1,(char*)"localhost");
         StopWait protocol(&compressor, &encoder, &socket);
         
         char* file_name;
@@ -45,7 +46,8 @@ int main(int argc, char* argv[])
         
     } else {
         
-        SocketRadio socket(0);
+        //SocketRadio socket(0);
+	    SocketUDP socket(0,(char*)"localhost");
         StopWait protocol(&compressor, &encoder, &socket);
         
         int received_ok = protocol.receive_text();

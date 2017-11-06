@@ -11,13 +11,19 @@
 #include <unistd.h>
 #include <cstdlib>
 #include <strings.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <cstring>
 
 #include <iostream>
 
 #include <netdb.h>
 
-#include "RF24/RF24.h"
+#define PORT1 8888
+#define PORT2 8889
+#define BUFLEN 512
+
+//#include "RF24/RF24.h"
 
 
 /***************** Base Class Socket *****************/
@@ -27,7 +33,7 @@ Socket::Socket(bool mode) {
 Socket::~Socket(){}
 
 /***************** Derived Class Socketradio *****************/
-
+/*
 SocketRadio::SocketRadio(bool mode): Socket(mode){
     // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz 
     radio_sender = new RF24(25, 0);
@@ -120,11 +126,12 @@ SocketRadio::~SocketRadio() {
     
 }
 
-
+*/
 
 /***************** Derived Class SocketTCP *****************/
 
-SocketTCP::SocketTCP(bool mode, char* ip, bool isServer): Socket(mode){
+SocketTCP::SocketTCP(bool mode, char* ip): Socket(mode){
+    bool isServer = mode;
     int port = TCP_PORT;
     if (isServer){
         int sockfd, newsockfd, portno;
@@ -211,7 +218,7 @@ bool SocketTCP::read_non_blocking(char* buff, int len, int timeout, int *timeout
             printf("\n Timeout Expired \n");
             break;
         default:
-            n = read(socket_id, buff, len);
+            return read(socket_id, buff, len);
     }
     
     return 0;
@@ -225,7 +232,7 @@ bool SocketTCP::write_socket(const char* buff, int len, int mode){
     int n = write(socket_id, buff, len);
     if (n < 0){
         printf("ERROR writing to socket");
-    	return 0;
+        return 0;
     }
     
     return 1;
@@ -233,5 +240,98 @@ bool SocketTCP::write_socket(const char* buff, int len, int mode){
 
 SocketTCP::~SocketTCP() {
     std::cout << "SocketTCP destroyed... " << std::endl;
+}
+
+/***************** Derived Class SocketUDP *****************/
+
+SocketUDP::SocketUDP(bool mode, char* ip): Socket(mode){
+
+    int s;
+
+    if (mode == 0){ //Server
+        struct sockaddr_in si_other, si_me;
+
+        
+        if((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
+            std::cout << "Error in socket" << std::endl;
+        }
+
+        memset((char*) &si_me, 0, sizeof(si_me));
+        si_me.sin_family = AF_INET;
+        si_me.sin_port = htons(PORT1);
+        si_me.sin_addr.s_addr = htonl(INADDR_ANY);
+        if(bind(s, (sockaddr*)&si_me, sizeof(si_me))==-1){
+            std::cout << "Error in bind" << std::endl;
+        }
+        si_me_ = si_me;
+
+        
+
+    } else{
+        struct sockaddr_in si_other, si_me;
+
+        if((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
+            std::cout << "Error in socket" << std::endl;
+        }
+        memset((char*) &si_other, 0, sizeof(si_other));
+        si_other.sin_family = AF_INET;
+        si_other.sin_port = htons(PORT1);
+
+        if (inet_aton(ip, &si_other.sin_addr)==0){
+            std::cout << "Error" << std::endl;
+        }
+        si_other_ = si_other;
+        si_me_ = si_me; 
+    }
+
+    socket_id = s;
+
+}
+
+bool SocketUDP::read_non_blocking(char* buff, int len, int timeout, int *timeout_info){
+    struct pollfd fds; // Polling system for timeouts
+    unsigned int slen=sizeof(si_other_);
+    fds.fd = socket_id;
+    fds.events = POLLIN;
+    
+    *timeout_info = poll(&fds, 1, timeout);
+    std::cout << "Timeout info: " << *timeout_info << std::endl;
+    int n = -2;
+    switch(*timeout_info) {
+        case -1:
+            std::cout << "Error Poll " << std::endl;
+            break;
+        case 0:
+            std::cout << "Timeout Expired " << std::endl;
+            break;
+        default:
+            return recvfrom (socket_id, buff, len, 0, (sockaddr*)&si_other_, &slen);
+    }
+    
+    return 0;
+}
+
+bool SocketUDP::read_blocking(char* buff, int len){
+    unsigned int slen=sizeof(si_other_);
+    std::cout << "Read blocking..." << std::endl;
+    return recvfrom (socket_id, buff, len, 0, (sockaddr*)&si_other_, &slen);
+}
+
+bool SocketUDP::write_socket(const char* buff, int len, int mode){
+    unsigned int slen=sizeof(si_other_);
+    std::cout << "Write to socket " <<  socket_id << std::endl;
+    int n = sendto(socket_id, buff, len, 0, (sockaddr*)&si_other_, slen);
+    if (n < 0){
+        std::cout << "Error writing to socket" << std::endl;
+        return 0;
+    }
+    std::cout << "Written ..." << std::endl;
+    
+    return 1;
+}
+
+SocketUDP::~SocketUDP() {
+    std::cout << "SocketTCP destroyed... " << std::endl;
+    close(socket_id);
 }
 

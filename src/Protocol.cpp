@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstdlib> // for the random
 #include <unistd.h>
+#include <cstring>
 #include <bitset>
 
 /***************** Base Class Protocol *****************/
@@ -67,7 +68,9 @@ int StopWait::receive_text() {
     unsigned int size;
     bool last_packet = false;
     
+
     while (!last_packet) {
+        std::cout << "Inside while..." << std::endl;
         result = socket->read_blocking(packet, utils::CODE_L);
         
         if (!result) {
@@ -75,7 +78,7 @@ int StopWait::receive_text() {
             break;
         }
         
-        printf("*** Received packet %i *** \n", counter);
+        std::cout << "*** Received packet " << counter << " *** " << std::endl;
         utils::printPacket(packet, utils::CODE_L, 1);
         
         error = encoder->decode(packet, corrected);
@@ -126,7 +129,7 @@ int StopWait::send_text(char *text) {
     char packet_ack[utils::LEN_ACK];
     char message[utils::CODE_L];
     
-    memset(message, 0x00, utils::CODE_L);
+    std::memset(message, 0x00, utils::CODE_L);
     
     int i = 0; //position in the number of packets
     int extra = ((len % utils::PAYLOAD_L) != 0); //extra we need for the last packet
@@ -145,9 +148,9 @@ int StopWait::send_text(char *text) {
             pay_len = utils::PAYLOAD_L;
         }
 
-	if(i*utils::PAYLOAD_L + pay_len + 1 == len){
-		flagOut = 1;
-	}
+    	if(i*utils::PAYLOAD_L + pay_len == len){
+    		flagOut = 1;
+    	}
 
         std::copy(&buffer[i*utils::PAYLOAD_L], &buffer[i*utils::PAYLOAD_L+pay_len], message);
         
@@ -157,12 +160,12 @@ int StopWait::send_text(char *text) {
         	message[utils::PAYLOAD_L] = (unsigned char) pay_len;
         //ENCODING PACKET
         encoder->encode(message, packet); //use the encoder to encode the information
-        
-	printf("*** Sending packet number %i ***\n", i);
-	utils::printPacket(packet, utils::CODE_L, 1);
+            
+    	printf("*** Sending packet number %i ***\n", i);
+    	utils::printPacket(packet, utils::CODE_L, 1);
 
-	socket->write_socket(packet, utils::CODE_L, 0);
-        
+    	socket->write_socket(packet, utils::CODE_L, 0);
+            
         
         //WAITING FOR ACK
         
@@ -181,9 +184,6 @@ int StopWait::send_text(char *text) {
             printf("\n Connection closed \n");
             break;  
         }
-        
-        
-        //TODO: implement packetACK
         
         // Check ACK
         int c = Protocol::isAck(p_packet_ack);

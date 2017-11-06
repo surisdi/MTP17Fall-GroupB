@@ -6,6 +6,7 @@
 #include <string>
 #include <unistd.h>
 #include <cstddef>
+#include <cstring>
 
 #include "schifra/schifra_galois_field.hpp"
 #include "schifra/schifra_galois_field_polynomial.hpp"
