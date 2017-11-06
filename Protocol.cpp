@@ -135,7 +135,8 @@ int StopWait::send_text(char *text) {
     /* ACK parameters */
     int timeout = 50;
     int n;
-    
+
+    int flagOut = 0;
     while (i < len / utils::PAYLOAD_L + extra) {
         
         if ( (i + 1) * utils::PAYLOAD_L > len ) {
@@ -144,9 +145,13 @@ int StopWait::send_text(char *text) {
             pay_len = utils::PAYLOAD_L;
         }
 
+	if(i*utils::PAYLOAD_L + pay_len + 1 == len){
+		flagOut = 1;
+	}
+
         std::copy(&buffer[i*utils::PAYLOAD_L], &buffer[i*utils::PAYLOAD_L+pay_len], message);
         
-    	if (pay_len < utils::PAYLOAD_L)
+    	if (flagOut)
         	message[utils::PAYLOAD_L] = (unsigned char) (pay_len+100); //Add information of the size of the payload
         else
         	message[utils::PAYLOAD_L] = (unsigned char) pay_len;
