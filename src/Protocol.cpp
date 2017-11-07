@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <bitset>
+#include <pthread.h>
 
 /***************** Base Class Protocol *****************/
 
@@ -116,7 +117,20 @@ int StopWait::receive_text() {
     
 }
 
+void *ReceiveThread(void *threadid) {
+   long tid;
+   tid = (long)threadid;
+   std::cout << "Hello World! Thread ID, " << tid << std::endl;
+   pthread_exit(NULL);
+}
+
 int StopWait::send_text(char *text) {
+    int rc;
+    pthread_t thread_receive;
+    long numero_random = 1;
+
+    // Initiate thread receive
+    rc = pthread_create(&thread_receive, NULL, ReceiveThread, (void *)numero_random);
     
     std::cout << "Sending text..." << std::endl;
     
