@@ -7,6 +7,8 @@
 #include "Socket.hpp"
 #include "Encoder.hpp"
 
+#include <mutex>
+
 /***************** Base Class Protocol *****************/
 
 class Protocol {
@@ -19,6 +21,12 @@ protected:
     int isAck(const char* r_ack);
     
     int createPacket(char *);
+
+    std::mutex mtx;
+
+    int flag_ack; // 1 ACK, 0 NOTHING RECEIVED, -1 NACK
+    int flag_pac_num;
+    bool finished_protocol;
 
 public:
     Protocol(Compressor *, Encoder *, Socket *);
@@ -40,6 +48,8 @@ public:
     virtual int send_text(char *text) override;
 
     virtual int receive_text() override;
+
+    void ReceiveThread(int threadid);
 
     virtual ~StopWait();
 };

@@ -295,14 +295,14 @@ bool SocketUDP::read_non_blocking(char* buff, int len, int timeout, int *timeout
     fds.events = POLLIN;
     
     *timeout_info = poll(&fds, 1, timeout);
-    std::cout << "Timeout info: " << *timeout_info << std::endl;
+    //std::cout << "Timeout info: " << *timeout_info << std::endl;
     int n = -2;
     switch(*timeout_info) {
         case -1:
-            std::cout << "Error Poll " << std::endl;
+            //std::cout << "Error Poll " << std::endl;
             break;
         case 0:
-            std::cout << "Timeout Expired " << std::endl;
+            //std::cout << "Timeout Expired " << std::endl;
             break;
         default:
             return recvfrom (socket_id_rx, buff, len, 0, (sockaddr*)&si_other_rx_, &slen);

@@ -3,10 +3,11 @@
 #include "utils.hpp"
 #include <cstdio>
 #include <cstdlib> // for the random
+#include <iostream>
 
 namespace utils{
     
-    extern const char ack = 0xFF;
+    extern const char ack = 0xFC;
     extern const char nack = 0x00;
     
     extern const int CODE_L = 32;
@@ -48,14 +49,14 @@ namespace utils{
 
     void printPacket(const char *buffer, const int len, const bool isHex) {
         
-        printf("[ ");
+        std::cout << "[ ";
         for (int i = 0; i < len; i++) {
             if(isHex)
-                printf(" %u ", buffer[i]);
+                std::cout << std::hex << buffer[i];
             else
-                printf("%c", buffer[i]);
+                std::cout << buffer[i];
         }
-        printf(" ]\n");
+        std::cout << " ]" << std::endl;
     }
                 
         

@@ -10,14 +10,21 @@
 #include <unistd.h>
 #include <cstring>
 #include <bitset>
-#include <pthread.h>
+#include <thread>
+#include <mutex>
+#include <ctime>
+
+#include <bitset>
+
 
 /***************** Base Class Protocol *****************/
 
 Protocol::Protocol(Compressor *comp, Encoder *enc, Socket *sck):
 compressor(comp),
 encoder(enc),
-socket(sck) {}
+socket(sck) {
+    finished_protocol = false;
+}
 
 int Protocol::isAck(const char* r_ack) {
         //std::bitset<sizeof(char)> bs(r_ack);
@@ -25,15 +32,18 @@ int Protocol::isAck(const char* r_ack) {
 	int n_ones = 0;
 	int n_zeros = 0;
 
-	for (int k = 0; k < 8; k++) {
-		if((*r_ack) & (0x01 << k) != 0) {
+    //std::bitset<8> x(*r_ack);
+    //std::cout << "ack packet: " << x << std::endl;
+    // The 2 lowest bits are for flags
+	for (int k = 2; k < 8; k++) {
+		if(((*r_ack) & (0x01 << k)) != 0) {
 			n_ones++;
 		}
 	}
 
-	if (n_ones > 5) {
+	if (n_ones > 4) {
 		return 1;
-	}else if(n_ones < 3) {
+	}else if(n_ones < 4) {
 		return 0;
 	} else {
 		return -1;
@@ -97,12 +107,15 @@ int StopWait::receive_text() {
                 size = size - 100;
                 last_packet = true;
             }
-            std::cout << "Size: " << size << std::endl;
+            std::cout << "Size: " << +size << std::endl;
 
             fwrite(corrected, sizeof(char), size, outputFile);
             counter++;
 
-            socket->write_socket(&utils::ack, 1, 1);
+            char ack_flags = utils::ack | counter%2;
+            std::bitset<8> x(ack_flags);
+            std::cout << "ack_flags: " << x << std::endl;
+            socket->write_socket(&ack_flags, 1, 1);
         }
         
     }
@@ -117,20 +130,45 @@ int StopWait::receive_text() {
     
 }
 
-void *ReceiveThread(void *threadid) {
-   long tid;
-   tid = (long)threadid;
-   std::cout << "Hello World! Thread ID, " << tid << std::endl;
-   pthread_exit(NULL);
+void StopWait::ReceiveThread(int threadid) {
+    char packet_ack[utils::LEN_ACK];
+    char *p_packet_ack = packet_ack;
+    int pac_num;
+    bool finished_p = false;
+    int n, ret, isack;
+    int timeout_receive = 1000;
+    while(!finished_p){
+        pac_num = -1;
+        // We do it with a timeout so that periodically it checks if the program has ended
+        // Wait for ack
+        n = socket->read_non_blocking(p_packet_ack, utils::LEN_ACK, timeout_receive, &ret);
+        if (ret == 0){
+            // Do nothing, continue listening, but check finished_protocol
+        }else{
+            if (n==0){
+                // Something?
+            }else{
+                isack = isAck(p_packet_ack);
+                pac_num = ((*p_packet_ack) & 0x01);
+                std::cout << "ACK received" << std::endl;
+            }       
+        }
+
+        mtx.lock();
+        finished_p = finished_protocol;
+        flag_ack = isack;
+        flag_pac_num = pac_num;
+        mtx.unlock();
+    }   
 }
 
 int StopWait::send_text(char *text) {
     int rc;
-    pthread_t thread_receive;
     long numero_random = 1;
 
     // Initiate thread receive
-    rc = pthread_create(&thread_receive, NULL, ReceiveThread, (void *)numero_random);
+    std::thread thread_receive(&StopWait::ReceiveThread, this, 50);
+    //rc = pthread_create(&thread_receive, NULL, ReceiveThread, (void *)numero_random);
     
     std::cout << "Sending text..." << std::endl;
     
@@ -140,7 +178,6 @@ int StopWait::send_text(char *text) {
     
     //char data[utils::PAYLOAD_L];
     char packet[utils::CODE_L];
-    char packet_ack[utils::LEN_ACK];
     char message[utils::CODE_L];
     
     std::memset(message, 0x00, utils::CODE_L);
@@ -150,8 +187,10 @@ int StopWait::send_text(char *text) {
     int pay_len; //actual lenght of the payload of the current packet
     
     /* ACK parameters */
-    int timeout = 50;
-    int n;
+    int timeout = 50; // milliseconds
+    clock_t start_clock;
+    int packet_id;
+    bool rec_ack;
 
     int flagOut = 0;
     while (i < len / utils::PAYLOAD_L + extra) {
@@ -175,45 +214,40 @@ int StopWait::send_text(char *text) {
         //ENCODING PACKET
         encoder->encode(message, packet); //use the encoder to encode the information
             
-    	printf("*** Sending packet number %i ***\n", i);
+    	std::cout << "*** Sending packet number " << i << " *** " << std::endl;;
     	utils::printPacket(packet, utils::CODE_L, 1);
 
     	socket->write_socket(packet, utils::CODE_L, 0);
             
-        
-        //WAITING FOR ACK
-        
         /* Wait for ACK */
-        int ret;
-        char *p_packet_ack = packet_ack;
-        n = socket->read_non_blocking(p_packet_ack, utils::LEN_ACK, timeout, &ret);
-        if (ret == 0) {
-            // Timeout: send again
-            printf("\n Timeout expired, resending \n");
-            
-            continue;
-        }
-        
-        if (n == 0) {
-            printf("\n Connection closed \n");
-            break;  
-        }
-        
-        // Check ACK
-        int c = Protocol::isAck(p_packet_ack);
-        switch(c){
-            case 1: // is ACK
-                printf("ACK received\n");
-                i++;
+        start_clock = clock();
+        rec_ack = false;
+        while((clock()-start_clock)/(CLOCKS_PER_SEC/1000) < timeout ){
+            mtx.lock();
+            if (flag_ack != 0){
+                if (flag_ack == 1){                    
+                    packet_id = flag_pac_num;
+                    rec_ack = true;
+                }
+                flag_ack = 0; //restart flag
+                mtx.unlock();
                 break;
-            case -1:
-                printf("NACK received\n");
-                break;
-            default:
-                printf("Garbage\n");
+            }
+            mtx.unlock();
         }
+        if (!rec_ack){
+            std::cout << "Timeout expired or NACK received: resending" << std::endl;
+        }else{
+            std::cout << "ACK received with packet ID " << packet_id << std::endl;
+            i++;
+        }
+
     }
-    printf("Finished transmitting!\n");
+    std::cout << "Finished transmitting!" << std::endl;
+    mtx.lock();
+    finished_protocol = true;
+    mtx.unlock();
+    thread_receive.join();
     return 0;
 }
 
