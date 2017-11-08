@@ -49,9 +49,25 @@ public:
 
     virtual int receive_text() override;
 
-    void ReceiveThread(int threadid);
+    void ReceiveThread();
 
     virtual ~StopWait();
+};
+
+
+/***************** Derived Class Go Back N *****************/
+
+class GoBackN: public Protocol {
+public:
+    GoBackN(Compressor *comp, Encoder *enc, Socket *sck);
+
+    virtual int send_text(char *text) override;
+
+    virtual int receive_text() override;
+
+    void ReceiveThread();
+
+    virtual ~GoBackN();
 };
 
 

@@ -14,6 +14,7 @@ namespace utils{
     extern const int REDUNDANCY = 2;
     extern const int DATA_L = CODE_L - REDUNDANCY;
     extern const int PAYLOAD_L = DATA_L - 1;
+    extern const int PAYLOAD_L_GBN = DATA_L - 2; // 2 bytes of flags
     extern const int LEN_ACK = 1;
     
     void bsc(char *sequence, int len, float prob)

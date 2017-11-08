@@ -12,6 +12,7 @@ namespace utils{
     extern const int REDUNDANCY;
     extern const int DATA_L;
     extern const int PAYLOAD_L;
+    extern const int PAYLOAD_L_GBN;
     extern const int LEN_ACK;
 
     extern const char ack;
