@@ -16,6 +16,7 @@ namespace utils{
     extern const int PAYLOAD_L = DATA_L - 1;
     extern const int PAYLOAD_L_GBN = DATA_L - 2; // 2 bytes of flags
     extern const int LEN_ACK = 1;
+    extern const int WINDOW_SIZE = 31; // 5 bits for the packet ID
     
     void bsc(char *sequence, int len, float prob)
     {

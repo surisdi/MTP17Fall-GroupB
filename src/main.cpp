@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
         
         //SocketRadio socket(1);
 	    SocketUDP socket(1,(char*)"localhost");
-        StopWait protocol(&compressor, &encoder, &socket);
+        GoBackN protocol(&compressor, &encoder, &socket);
         
         char* file_name;
         if(argc > 2){
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
         
         //SocketRadio socket(0);
 	    SocketUDP socket(0,(char*)"localhost");
-        StopWait protocol(&compressor, &encoder, &socket);
+        GoBackN protocol(&compressor, &encoder, &socket);
         
         int received_ok = protocol.receive_text();
     }

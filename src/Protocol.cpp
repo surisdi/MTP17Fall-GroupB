@@ -17,10 +17,6 @@
 #include <bitset>
 #include <map>
 
-#define WINDOW_SIZE 31 // 5 bits for the ID of the packet
-#define CODE_L_PROTOCOL 32
-
-
 /***************** Base Class Protocol *****************/
 
 Protocol::Protocol(Compressor *comp, Encoder *enc, Socket *sck):
@@ -71,8 +67,8 @@ int StopWait::receive_text() {
     
     std::cout << "Receiving text..." << std::endl;
     
-    char packet[CODE_L_PROTOCOL];
-    char corrected[CODE_L_PROTOCOL];
+    char packet[utils::CODE_L];
+    char corrected[utils::CODE_L];
     
     FILE *outputFile = fopen("output.txt", "w+b");
     
@@ -86,7 +82,7 @@ int StopWait::receive_text() {
 
     while (!last_packet) {
         std::cout << "Inside while..." << std::endl;
-        result = socket->read_blocking(packet, CODE_L_PROTOCOL);
+        result = socket->read_blocking(packet, utils::CODE_L);
         
         if (!result) {
             printf("Connection closed \n");
@@ -94,7 +90,7 @@ int StopWait::receive_text() {
         }
         
         std::cout << "*** Received packet " << counter << " *** " << std::endl;
-        utils::printPacket(packet, CODE_L_PROTOCOL, 1);
+        utils::printPacket(packet, utils::CODE_L, 1);
         
         error = encoder->decode(packet, corrected);
         
@@ -179,10 +175,10 @@ int StopWait::send_text(char *text) {
     char *buffer = utils::read_text(text, &len);
     
     //char data[utils::PAYLOAD_L];
-    char packet[CODE_L_PROTOCOL];
-    char message[CODE_L_PROTOCOL];
+    char packet[utils::CODE_L];
+    char message[utils::CODE_L];
     
-    std::memset(message, 0x00, CODE_L_PROTOCOL);
+    std::memset(message, 0x00, utils::CODE_L);
     
     int i = 0; //position in the number of packets
     int extra = ((len % utils::PAYLOAD_L) != 0); //extra we need for the last packet
@@ -217,9 +213,9 @@ int StopWait::send_text(char *text) {
         encoder->encode(message, packet); //use the encoder to encode the information
             
     	std::cout << "*** Sending packet number " << i << " *** " << std::endl;;
-    	utils::printPacket(packet, CODE_L_PROTOCOL, 1);
+    	utils::printPacket(packet, utils::CODE_L, 1);
 
-    	socket->write_socket(packet, CODE_L_PROTOCOL, 0);
+    	socket->write_socket(packet, utils::CODE_L, 0);
             
         /* Wait for ACK */
         start_clock = clock();
@@ -271,8 +267,8 @@ int GoBackN::receive_text() {
     
     std::cout << "Receiving text..." << std::endl;
     
-    char packet[CODE_L_PROTOCOL];
-    char corrected[CODE_L_PROTOCOL];
+    char packet[utils::CODE_L];
+    char corrected[utils::CODE_L];
     
     FILE *outputFile = fopen("output.txt", "w+b");
     
@@ -286,7 +282,7 @@ int GoBackN::receive_text() {
 
     while (!last_packet) {
         std::cout << "Inside while..." << std::endl;
-        result = socket->read_blocking(packet, CODE_L_PROTOCOL);
+        result = socket->read_blocking(packet, utils::CODE_L);
         
         if (!result) {
             printf("Connection closed \n");
@@ -294,7 +290,7 @@ int GoBackN::receive_text() {
         }
         
         std::cout << "*** Received packet " << counter << " *** " << std::endl;
-        utils::printPacket(packet, CODE_L_PROTOCOL, 1);
+        utils::printPacket(packet, utils::CODE_L, 1);
         
         error = encoder->decode(packet, corrected);
         
@@ -368,10 +364,18 @@ void GoBackN::ReceiveThread() {
 
 struct Packet
 {
-    char pac[CODE_L_PROTOCOL];
+    //char *pac[utils::CODE_L];
+    char *pac;
 };
 
 int GoBackN::send_text(char *text) {
+
+    // Go back N variables
+
+    int id_send = 0;
+    int id_expected = 0; // expected packet to be acknowledged
+
+    int id_receive; // to save the acknowledged packet ID
 
     // Initiate thread receive
     std::thread thread_receive(&GoBackN::ReceiveThread, this);
@@ -382,12 +386,12 @@ int GoBackN::send_text(char *text) {
     int size;
     char *buffer = utils::read_text(text, &len);
 
-    char packet[CODE_L_PROTOCOL];
-    char message[CODE_L_PROTOCOL];
+    char packet[utils::CODE_L];
+    char message[utils::CODE_L];
 
     std::map<int,Packet> packets;
-    
-    std::memset(message, 0x00, CODE_L_PROTOCOL);
+
+    std::memset(message, 0x00, utils::CODE_L);
     
     int i = 0; //position in the number of packets
     int extra = ((len % utils::PAYLOAD_L_GBN) != 0); //extra we need for the last packet
@@ -399,9 +403,6 @@ int GoBackN::send_text(char *text) {
     std::map<int,clock_t> start_clocks;
 
     int flagOut = 0;
-
-    int packet_id_receive;
-    int packet_id_send = 0;
 
     while (i < len / utils::PAYLOAD_L_GBN + extra) {
         
@@ -423,31 +424,33 @@ int GoBackN::send_text(char *text) {
             message[utils::PAYLOAD_L_GBN+1] = (unsigned char) pay_len;
 
         // Introduce packet ID information
-        message[utils::PAYLOAD_L_GBN] =  (unsigned char) packet_id_send;
+        message[utils::PAYLOAD_L_GBN] =  (unsigned char) id_send;
 
         //ENCODING PACKET
         encoder->encode(message, packet); //use the encoder to encode the information
 
         // Save packet in buffer
         // AQUEST BUFFER ES NECESSARI PERQUE QUAN PASSI EL TIMEOUT HEM DE REENVIAR ELS SEUS MISSATGES
-        Packet aux;
-        std::copy(&packet[0], &packet[CODE_L_PROTOCOL], aux.pac);
-        packets[packet_id_send] = aux;
+        packets[id_send] = {packet}; 
+
+        /*if (id_send < id_expected + utils::WINDOW_SIZE){
+
+        }*/
             
         std::cout << "*** Sending packet number " << i << " *** " << std::endl;;
-        utils::printPacket(packet, CODE_L_PROTOCOL, 1);
+        utils::printPacket(packet, utils::CODE_L, 1);
 
-        socket->write_socket(packet, CODE_L_PROTOCOL, 0);
+        socket->write_socket(packets[id_send].pac, utils::CODE_L, 0);
             
         /* Wait for ACK */
-        start_clocks[packet_id_send] = clock();
+        start_clocks[id_send] = clock();
         rec_ack = false;
         // AQUI TINDREM ELS TIMEOUTS DE CADA PAQUET, PERO NOMES CALDRA QUE COMPROVEM EL TIMEOUT DEL PAQUET MES ANTIC. QUAN AQUEST SIGUI ACK-EJAT EL SEGUENT PASSARA A SER EL IMPORTANT
-        while((clock()-start_clocks[packet_id_send])/(CLOCKS_PER_SEC/1000) < timeout ){
+        while((clock()-start_clocks[id_send])/(CLOCKS_PER_SEC/1000) < timeout ){
             mtx.lock();
             if (flag_ack != 0){
                 if (flag_ack == 1){                    
-                    packet_id_receive = flag_pac_num;
+                    id_receive = flag_pac_num;
                     rec_ack = true;
                 }
                 flag_ack = 0; //restart flag

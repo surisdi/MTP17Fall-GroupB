@@ -14,6 +14,8 @@ namespace utils{
     extern const int PAYLOAD_L;
     extern const int PAYLOAD_L_GBN;
     extern const int LEN_ACK;
+    extern const int WINDOW_SIZE;
+
 
     extern const char ack;
     extern const char nack;
