@@ -1,6 +1,3 @@
-
-
-
 default: main
 
 #main: Compressor.o Protocol.o Socket.o utils.o main.cpp Compressor.hpp Protocol.hpp Socket.hpp utils.hpp 
@@ -17,7 +14,6 @@ Compressor.o: Compressor.cpp Compressor.hpp
 
 Socket.o: Socket.cpp Socket.hpp
 	g++ -std=gnu++11 -L home/pi/RF24/ -lrf24 -c Socket.cpp -fno-omit-frame-pointer -O2
-
 
 utils.o: utils.cpp utils.hpp
 	g++ -std=gnu++11 -c utils.cpp -fno-omit-frame-pointer -O2

@@ -1,6 +1,7 @@
 //Socket.cpp
 
 #include "Socket.hpp"
+#include "utils.hpp"
 
 #include "poll.h"
 
@@ -80,7 +81,7 @@ bool SocketRadio::read_blocking(char *buff, int len){
     while(!radio_sender->available()){
      	// sleep
     }
-    std::cout << "Is available\n" << std::endl;
+    COUT<< "Is available\n\n";
     while(radio_sender->available()){
 	radio_sender->read(buff, len); // Per aqui pot fallar
     }
@@ -139,7 +140,7 @@ SocketTCP::SocketTCP(bool mode, char* ip): Socket(mode){
         
         struct sockaddr_in serv_addr, cli_addr;
         int n;
-        std::cout << "Waiting for a connection " << std::endl;
+        COUT<< "Waiting for a connection \n";
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0){
             printf("ERROR opening socket");
@@ -171,7 +172,7 @@ SocketTCP::SocketTCP(bool mode, char* ip): Socket(mode){
         struct hostent *server;
         
         portno = port;
-        std::cout << "Trying to connect to a server " << std::endl;
+        COUT<< "Trying to connect to a server \n";
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0){
             printf("ERROR opening socket");
@@ -239,7 +240,7 @@ bool SocketTCP::write_socket(const char* buff, int len, int mode){
 }
 
 SocketTCP::~SocketTCP() {
-    std::cout << "SocketTCP destroyed... " << std::endl;
+    COUT<< "SocketTCP destroyed... \n";
 }
 
 /***************** Derived Class SocketUDP *****************/
@@ -257,7 +258,7 @@ SocketUDP::SocketUDP(bool mode, char* ip): Socket(mode){
 
     // Creacio servidor
     if((s_rx=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
-        std::cout << "Error in socket" << std::endl;
+        COUT<< "Error in socket\n";
     }
 
     memset((char*) &si_me_rx, 0, sizeof(si_me_rx));
@@ -265,19 +266,19 @@ SocketUDP::SocketUDP(bool mode, char* ip): Socket(mode){
     si_me_rx.sin_port = htons(PORT_RX);
     si_me_rx.sin_addr.s_addr = htonl(INADDR_ANY);
     if(bind(s_rx, (sockaddr*)&si_me_rx, sizeof(si_me_rx))==-1){
-        std::cout << "Error in bind" << std::endl;
+        COUT<< "Error in bind\n";
     }
 
     // Creacio client
     if((s_tx=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1){
-        std::cout << "Error in socket" << std::endl;
+        COUT<< "Error in socket\n";
     }
     memset((char*) &si_other_tx, 0, sizeof(si_other_tx));
     si_other_tx.sin_family = AF_INET;
     si_other_tx.sin_port = htons(PORT_TX);
 
     if (inet_aton(ip, &si_other_tx.sin_addr)==0){
-        std::cout << "Error" << std::endl;
+        COUT<< "Error\n";
     }
 
     si_me_rx_ = si_me_rx;
@@ -295,14 +296,14 @@ bool SocketUDP::read_non_blocking(char* buff, int len, int timeout, int *timeout
     fds.events = POLLIN;
     
     *timeout_info = poll(&fds, 1, timeout);
-    //std::cout << "Timeout info: " << *timeout_info << std::endl;
+    //COUT<< "Timeout info: " << *timeout_info << "\n";
     int n = -2;
     switch(*timeout_info) {
         case -1:
-            //std::cout << "Error Poll " << std::endl;
+            //COUT<< "Error Poll \n";
             break;
         case 0:
-            //std::cout << "Timeout Expired " << std::endl;
+            //COUT<< "Timeout Expired \n";
             break;
         default:
             return recvfrom (socket_id_rx, buff, len, 0, (sockaddr*)&si_other_rx_, &slen);
@@ -313,25 +314,25 @@ bool SocketUDP::read_non_blocking(char* buff, int len, int timeout, int *timeout
 
 bool SocketUDP::read_blocking(char* buff, int len){
     unsigned int slen=sizeof(si_other_rx_);
-    std::cout << "Read blocking..." << std::endl;
+    COUT<< "Read blocking...\n";
     return recvfrom (socket_id_rx, buff, len, 0, (sockaddr*)&si_other_rx_, &slen);
 }
 
 bool SocketUDP::write_socket(const char* buff, int len, int mode){
     unsigned int slen=sizeof(si_other_tx_);
-    std::cout << "Write to socket " <<  socket_id_tx << std::endl;
+    COUT<< "Write to socket " <<  socket_id_tx << "\n";
     int n = sendto(socket_id_tx, buff, len, 0, (sockaddr*)&si_other_tx_, slen);
     if (n < 0){
-        std::cout << "Error writing to socket" << std::endl;
+        COUT<< "Error writing to socket\n";
         return 0;
     }
-    std::cout << "Written ..." << std::endl;
+    COUT<< "Written ...\n";
     
     return 1;
 }
 
 SocketUDP::~SocketUDP() {
-    std::cout << "SocketTCP destroyed... " << std::endl;
+    COUT<< "SocketTCP destroyed... \n";
     close(socket_id_tx);
     close(socket_id_rx);
 }

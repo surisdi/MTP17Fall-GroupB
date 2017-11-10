@@ -51,14 +51,14 @@ namespace utils{
 
     void printPacket(const char *buffer, const int len, const bool isHex) {
         
-        std::cout << "[ ";
+        COUT<< "[ ";
         for (int i = 0; i < len; i++) {
             if(isHex)
-                std::cout << std::hex << buffer[i];
+                COUT<< std::hex << buffer[i];
             else
-                std::cout << buffer[i];
+                COUT<< buffer[i];
         }
-        std::cout << " ]" << std::endl;
+        COUT<< " ]\n";
     }
                 
         

@@ -6,8 +6,17 @@
 #include <cstdio>
 #include <cstdlib>
 
-namespace utils{
-    
+class NullStream {
+    public:
+    NullStream() { }
+    template<typename T> NullStream& operator<<(T const&) { return *this; }
+};
+
+    #define COUT std::cout
+    //#define COUT NullStream()
+
+    namespace utils{
+
     extern const int CODE_L;
     extern const int REDUNDANCY;
     extern const int DATA_L;

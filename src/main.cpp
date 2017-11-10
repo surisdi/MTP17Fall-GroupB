@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
             file_name = (char *)"file.txt";
         }
         
-        std::cout << "Input file name: " << file_name << std::endl;
+        cout << "Input file name: " << file_name << endl;
         
         int sent_ok = protocol.send_text(file_name);
         

@@ -52,7 +52,7 @@ public:
                                                                 *generator_polynomial)
         )
         {
-            std::cout << "Error - Failed to create sequential root generator!" << std::endl;
+            COUT<< "Error - Failed to create sequential root generator!\n";
         }
         
         encoder = new encoder_t(*field, *generator_polynomial);
@@ -81,8 +81,8 @@ public:
         block = schifra::reed_solomon::block<code_length,fec_length>(data, fec);
         
         if(!decoder->decode(block)) {
-            std::cout << "Error - Critical decoding failure! "
-            << "Msg: " << block.error_as_string() << std::endl;
+            COUT<< "Error - Critical decoding failure! "
+            << "Msg: " << block.error_as_string() << "\n";
             error = 1;
             
         } else{
@@ -94,7 +94,7 @@ public:
     }
     
     inline ~EncoderRS() {
-        std::cout << "EncodeRS destroyed..." << std::endl;
+        COUT<< "EncodeRS destroyed...\n";
     }
     
 private:

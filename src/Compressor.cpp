@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include "Compressor.hpp"
+#include "utils.hpp"
 
 /***************** Base Class Compressor *****************/
 
@@ -16,20 +17,20 @@ Compressor::~Compressor() {}
 Compressor1::Compressor1(float cmpRate, int n_part):
 Compressor(cmpRate, n_part)
 {
-	std::cout << "Compressor1 created..." << std::endl;
+	COUT<< "Compressor1 created...\n";
 }
 
 void Compressor1::compress(const char *input, char *output)
 {
-	std::cout << "File compressed with compressor 1 " << std::endl;
+	COUT<< "File compressed with compressor 1 \n";
 }
 
 void Compressor1::decompress(const char *input, char *output)
 {
-	std::cout << "File decompressed with compressor 1 " << std::endl;
+	COUT<< "File decompressed with compressor 1 \n";
 }
 
 Compressor1::~Compressor1() {
-	std::cout << "Compressor1 destroyed..." << std::endl;
+	COUT<< "Compressor1 destroyed...\n";
 }
 
