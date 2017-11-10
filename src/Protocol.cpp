@@ -451,7 +451,7 @@ int GoBackN::send_text(char *text) {
         start_clock = clock();
         rec_ack = false;
         // AQUI TINDREM ELS TIMEOUTS DE CADA PAQUET, PERO NOMES CALDRA QUE COMPROVEM EL TIMEOUT DEL PAQUET MES ANTIC. QUAN AQUEST SIGUI ACK-EJAT EL SEGUENT PASSARA A SER EL IMPORTANT
-        while((clock()-start_clocks[id_send])/(CLOCKS_PER_SEC/1000) < timeout ){
+        while((clock()-start_clock)/(CLOCKS_PER_SEC/1000) < timeout ){
             mtx.lock();
             if (flag_ack != 0){
                 if (flag_ack == 1){                    
