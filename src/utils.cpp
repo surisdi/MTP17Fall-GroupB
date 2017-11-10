@@ -10,14 +10,18 @@ namespace utils{
     extern const char ack = 0xFC;
     extern const char nack = 0x00;
     
-    extern const int CODE_L = 32;
-    extern const int REDUNDANCY = 2;
+    // Protocol constants
     extern const int DATA_L = CODE_L - REDUNDANCY;
     extern const int PAYLOAD_L = DATA_L - 1;
     extern const int PAYLOAD_L_GBN = DATA_L - 2; // 2 bytes of flags
     extern const int LEN_ACK = 1;
     extern const int WINDOW_SIZE = 31; // 5 bits for the packet ID
     
+    // Compression constants
+    extern const int CHUNK_SIZE = 256;
+    extern const int sizeCompressed = (CHUNK_SIZE*1.1) + 12;
+    extern const int COMPRESSION_RATIO = 9;
+
     void bsc(char *sequence, int len, float prob)
     {
         double w;
@@ -63,7 +67,7 @@ namespace utils{
                 
         
     
-    char* read_text(char* file_name, int* mylen){
+    char* read_text(const char *file_name, int* mylen){
         
         FILE *fl = fopen(file_name, "rb");  
         fseek(fl, 0, SEEK_END);  

@@ -14,17 +14,13 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-    const int CODE_L = 32;
-    const int REDUNDANCY = 2;
-
     if(argc < 2){
         cout << "Please provide arguments " << endl;
         return -1;
     }
     
-    //TODO: Aixo no fa res, s'ha d'eliminar, només es una clase de prints
-    Compressor1 compressor(0.5, 5);
-    EncoderRS<CODE_L, REDUNDANCY> encoder;
+    Compressor1 compressor(utils::COMPRESSION_RATIO);
+    EncoderRS<utils::CODE_L, utils::REDUNDANCY> encoder;
     
     if(string(argv[1]) == "tx") {
         
