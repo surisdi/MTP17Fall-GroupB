@@ -19,7 +19,7 @@ Compressor::~Compressor() {}
 Compressor1::Compressor1(int cmpRate):
 Compressor(cmpRate)
 {
-	COUT<< "Compressor1 created...\n";
+	COUT<< "Compressor1 created\n";
 }
 
 int Compressor1::compressFile(char *file_name, Chunk *output, int *num_chunk)

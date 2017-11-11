@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     
     Compressor1 compressor(utils::COMPRESSION_RATIO);
     EncoderRS<utils::CODE_L, utils::REDUNDANCY> encoder;
-    
+
     if(string(argv[1]) == "tx") {
         
         //SocketRadio socket(1);

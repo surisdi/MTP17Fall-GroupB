@@ -4,10 +4,12 @@
 #include <cstdio>
 #include <cstdlib> // for the random
 #include <iostream>
+#include <bitset>
 
 namespace utils{
     
-    extern const char ack = 0xFC;
+    extern const char ack_sw = 0xFC;
+    extern const char ack_gbn = 0xE0;
     extern const char nack = 0x00;
     
     // Protocol constants
@@ -22,21 +24,24 @@ namespace utils{
     extern const int sizeCompressed = (CHUNK_SIZE*1.1) + 12;
     extern const int COMPRESSION_RATIO = 9;
 
-    void bsc(char *sequence, int len, float prob)
+    void bsc(char *sequence, int len, float prob_error)
     {
         double w;
         int b;
         int coin;
         
-        for (int i=0; i < len; i++) {
+        for (int i=0; i < len; i++) {;
             for (b = 0; b < 8; b++) {
                 w = (double)rand()/ (double) RAND_MAX;
-                coin = w < prob;
-                sequence[i] = sequence[i] ^  (coin << b);
+                coin = w < prob_error;
+                sequence[i] = sequence[i] ^ (coin << b);
             }
         }
     }
     
+    void printBits(size_t const size, void const * const ptr){}
+    void printPacket(const char *buffer, const int len, const int format) {}
+    /*
     void printBits(size_t const size, void const * const ptr){
         unsigned char *b = (unsigned char*) ptr;
         unsigned char byte;
@@ -53,18 +58,26 @@ namespace utils{
         puts("");
     }
 
-    void printPacket(const char *buffer, const int len, const bool isHex) {
-        
+    void printPacket(const char *buffer, const int len, const int format) {
+        // format: 0 char, 1 hex, 2 decimal
         COUT<< "[ ";
         for (int i = 0; i < len; i++) {
-            if(isHex)
-                COUT<< std::hex << buffer[i];
-            else
-                COUT<< buffer[i];
+            switch(format){
+                case 0:
+                    COUT<< buffer[i];
+                    break;
+                case 1: 
+                    COUT<< std::hex << static_cast<int>(buffer[i]) << " ";
+                    break;
+                case 2:
+                    COUT<< std::dec << static_cast<int>(buffer[i]) << " ";
+                    break;
+            }
         }
+
         COUT<< " ]\n";
     }
-                
+          */      
         
     
     char* read_text(const char *file_name, int* mylen){

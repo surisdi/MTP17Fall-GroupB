@@ -278,7 +278,10 @@ SocketUDP::SocketUDP(bool mode, char* ip): Socket(mode){
     si_other_tx.sin_port = htons(PORT_TX);
 
     if (inet_aton(ip, &si_other_tx.sin_addr)==0){
-        COUT<< "Error\n";
+        //COUT<< "Address is not valid\n";
+        // Actually this will give always an error, because this function
+        // transforms the address in format a.b.c.d to binary, and the 
+        // address we pass is "localhost". Nothing to worry about.
     }
 
     si_me_rx_ = si_me_rx;
@@ -286,6 +289,8 @@ SocketUDP::SocketUDP(bool mode, char* ip): Socket(mode){
     si_other_rx_ = si_other_rx;
     socket_id_tx = s_tx;
     socket_id_rx = s_rx;
+
+    COUT << "Socket UDP created\n";
 
 }
 
@@ -320,13 +325,13 @@ bool SocketUDP::read_blocking(char* buff, int len){
 
 bool SocketUDP::write_socket(const char* buff, int len, int mode){
     unsigned int slen=sizeof(si_other_tx_);
-    COUT<< "Write to socket " <<  socket_id_tx << "\n";
+    //COUT<< "Write to socket " <<  socket_id_tx << "\n";
     int n = sendto(socket_id_tx, buff, len, 0, (sockaddr*)&si_other_tx_, slen);
     if (n < 0){
         COUT<< "Error writing to socket\n";
         return 0;
     }
-    COUT<< "Written ...\n";
+    //COUT<< "Written ...\n";
     
     return 1;
 }

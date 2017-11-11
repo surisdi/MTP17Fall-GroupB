@@ -8,6 +8,7 @@
 #include "Encoder.hpp"
 
 #include <mutex>
+#include <sys/time.h>
 
 /***************** Base Class Protocol *****************/
 
@@ -24,9 +25,9 @@ protected:
 
     std::mutex mtx;
 
-    int flag_ack; // 1 ACK, 0 NOTHING RECEIVED, -1 NACK
-    int flag_pac_num;
     bool finished_protocol;
+    struct timespec clock_start, clock_now; 
+    bool timer_running;
 
 public:
     Protocol(Compressor *, Encoder *, Socket *);
@@ -49,9 +50,15 @@ public:
 
     virtual int receive_text() override;
 
-    void ReceiveThread();
-
     virtual ~StopWait();
+
+private:
+    void receiveThread();
+
+    virtual void createMessage(char *message, char *buffer, int i, int len);
+
+    int flag_ack; // 1 ACK, 0 NOTHING RECEIVED, -1 NACK
+    int flag_pac_num;
 };
 
 
@@ -60,14 +67,22 @@ public:
 class GoBackN: public Protocol {
 public:
     GoBackN(Compressor *comp, Encoder *enc, Socket *sck);
-
     virtual int send_text(char *text) override;
 
     virtual int receive_text() override;
 
-    void ReceiveThread();
-
     virtual ~GoBackN();
+
+private:
+
+    void receiveThread();
+
+    bool timeoutExpired();
+
+    virtual void createMessage(char *message, char *buffer, int i, int len);
+
+    int id_send; // Next packet to be sent
+    int id_base; // Expected packet to be acknowledged
 };
 
 

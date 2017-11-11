@@ -12,14 +12,13 @@ class NullStream {
     template<typename T> NullStream& operator<<(T const&) { return *this; }
 };
 
-
 struct Chunk {
 	unsigned char *data;
 	unsigned long *len;
 };
 
-#define COUT std::cout
-//#define COUT NullStream()
+//#define COUT std::cout
+#define COUT NullStream()
 
 namespace utils{
 
@@ -40,12 +39,13 @@ namespace utils{
     extern const int sizeCompressed;
     extern const int COMPRESSION_RATIO;
 
-    extern const char ack;
+    extern const char ack_sw;
+    extern const char ack_gbn;
     extern const char nack;
     
     void bsc(char *sequence, int len, float prob);
     char* read_text(const char *file_name, int *len);
-    void printPacket(const char *buffer, const int len, const bool isHex);
+    void printPacket(const char *buffer, const int len, const int format);
 
     void printBits(size_t const size, void const * const ptr);
 

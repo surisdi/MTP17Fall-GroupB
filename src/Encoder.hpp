@@ -59,6 +59,8 @@ public:
         decoder = new decoder_t(*field, generator_polynomial_index);
         
         corrected.resize(data_length, 0x00);
+
+        COUT << "EncoderRS created\n";
     }
     
     inline bool encode(const char *input, char *output) {
