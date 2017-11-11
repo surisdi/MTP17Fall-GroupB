@@ -18,7 +18,6 @@ namespace utils{
     extern const int WINDOW_SIZE = 31; // 5 bits for the packet ID
     
     // Compression constants
-    extern const int CHUNK_SIZE = 256;
     extern const int sizeCompressed = (CHUNK_SIZE*1.1) + 12;
     extern const int COMPRESSION_RATIO = 9;
 

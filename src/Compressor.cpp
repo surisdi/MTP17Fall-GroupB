@@ -9,7 +9,8 @@
 Compressor::Compressor(int cmpRate):
 compressionRate(cmpRate),
 outputFile(NULL),
-n_chunks(0) {}
+n_chunks(0),
+sizeDataUncompressed(utils::CHUNK_SIZE){}
 
 Compressor::~Compressor() {}
 
@@ -48,7 +49,6 @@ int Compressor1::compressFile(char *file_name, Chunk *output, int *num_chunk)
 	*size = utils::sizeCompressed;
 	unsigned char *dataCompressed = (unsigned char*)malloc(utils::sizeCompressed);
 	int z_result = compress2(dataCompressed, size, &buffer[counter], len-counter, compressionRate);
-	int lastChunk = len - counter;
 
 	listChunk[n_chunks-1].data = dataCompressed;
 	listChunk[n_chunks-1].len = size;
@@ -57,8 +57,11 @@ int Compressor1::compressFile(char *file_name, Chunk *output, int *num_chunk)
 	output = listChunk;
 	*num_chunk = n_chunks;
 
+	COUT << "Size Original file: " << len << "\n";
+	COUT << "Size compressed file: " << numbytes << "\n";
+
 	if(z_result >= 0)
-		return lastChunk;
+		return len - counter;
 	else
 		return z_result;
 }
@@ -71,16 +74,21 @@ int Compressor1::startDecompress(char *file_name)
 
 int Compressor1::decompressChunk(Chunk *input, int chunk_size, char *output)
 {
-	unsigned long sizeDataUncompressed = chunk_size;
-	unsigned char * dataUncompressed = (unsigned char *)malloc(sizeDataUncompressed);
+	if(chunk_size < utils::CHUNK_SIZE)
+		sizeDataUncompressed = chunk_size;
+
 	int z_result = uncompress(dataUncompressed, &sizeDataUncompressed, input->data, *(input->len));
 
-	if(z_result >= 0)
-		return fwrite(dataUncompressed, sizeof(char), sizeDataUncompressed, outputFile);
-	else
-		return z_result;
+	if(z_result >= 0) {
+		int ret = fwrite(dataUncompressed, sizeof(char), sizeDataUncompressed, outputFile);
 
-	free(dataUncompressed);
+		free(input->data);
+		free(input->len);
+
+		return ret;
+	} else {
+		return z_result;
+	}
 }
 
 int Compressor1::closeDecompress()

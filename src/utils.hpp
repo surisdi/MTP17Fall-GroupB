@@ -36,7 +36,7 @@ namespace utils{
 
     //Compressor constants
     constexpr int MAX_CHUNK = 1000;
-    extern const int CHUNK_SIZE;
+    constexpr int CHUNK_SIZE = 1024;
     extern const int sizeCompressed;
     extern const int COMPRESSION_RATIO;
 
