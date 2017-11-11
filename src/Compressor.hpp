@@ -14,6 +14,9 @@ protected:
 	FILE *outputFile;
 	Chunk listChunk[utils::MAX_CHUNK];
 
+	unsigned char dataUncompressed[utils::CHUNK_SIZE];
+	unsigned long sizeDataUncompressed;
+
 
 public:
 	// Compression ratio 0-9 (9 maximum compression)
