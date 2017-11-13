@@ -40,8 +40,8 @@ namespace utils{
     
     void printBits(size_t const size, void const * const ptr){}
     void printPacket(const char *buffer, const int len, const int format) {}
-    /*
-    void printBits(size_t const size, void const * const ptr){
+
+    /*void printBits(size_t const size, void const * const ptr){
         unsigned char *b = (unsigned char*) ptr;
         unsigned char byte;
         int i, j;
@@ -66,17 +66,17 @@ namespace utils{
                     COUT<< buffer[i];
                     break;
                 case 1: 
-                    COUT<< std::hex << static_cast<int>(buffer[i]) << " ";
+                    COUT<< std::hex << static_cast<unsigned char>(buffer[i]) << " ";
                     break;
                 case 2:
-                    COUT<< std::dec << static_cast<int>(buffer[i]) << " ";
+                	printf(" %u ", (unsigned char)buffer[i]);
+                    //COUT<< std::dec << static_cast<unsigned char>(buffer[i]) << " ";
                     break;
             }
         }
 
         COUT<< " ]\n";
-    }
-          */      
+    }*/
         
     
     char* read_text(const char *file_name, int* mylen){

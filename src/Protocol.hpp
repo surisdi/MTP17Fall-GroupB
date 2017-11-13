@@ -79,7 +79,7 @@ private:
 
     bool timeoutExpired();
 
-    virtual void createMessage(char *message, char *buffer, int i, int len);
+    virtual void createMessage(char *message, char *buffer, int i, int len, bool isLast);
 
     int id_send; // Next packet to be sent
     int id_base; // Expected packet to be acknowledged

@@ -35,19 +35,31 @@ int GoBackN::receive_text() {
     char packet[utils::CODE_L];
     char corrected[utils::CODE_L];
     
-    FILE *outputFile = fopen("output.txt", "w+b");
+    int check = compressor->startDecompress("output.txt");
+    Chunk chunk;
+    unsigned long aux;
     
     int counter = 0;
     char ack_flags = 0x00;
+    unsigned char aux_size;
     bool error;
     bool result;
     int decode_info;
+    int chunk_size = utils::CHUNK_SIZE;
     unsigned int size;
-    bool last_packet = false;
+    unsigned char my_aux;
+    unsigned char aux_parser;
+    unsigned char last_packet = 0;
+    unsigned char last_chunk = 0;
+    bool get_out = false;
     double num;
     //clock_gettime(CLOCK_REALTIME,&clock_now);
 
-    while (!last_packet) {
+    //unsigned char *buffer = (unsigned char*)malloc(sizeof(char)*utils::CHUNK_SIZE);
+    std::vector<unsigned char> buff;
+    buff.reserve(sizeof(char)*utils::CHUNK_SIZE);
+
+    while (!get_out) {
         //clock_gettime(CLOCK_REALTIME,&clock_start);
         //std::cout << "Diferencia temps en nanos: " << clock_start.tv_nsec - clock_now.tv_nsec << "\n";
         result = socket->read_blocking(packet, utils::CODE_L);
@@ -73,15 +85,41 @@ int GoBackN::receive_text() {
             received_id = (unsigned int) corrected[utils::PAYLOAD_L_GBN];
         }
         COUT << "received_id: " << received_id << ", expected_id: " << expected_id << "\n";
-        if(!error && received_id==expected_id){
-            if (size > utils::PAYLOAD_L_GBN){
-                size = size - 100;
-                last_packet = true;
-            }
-            COUT << "Size: " << +size << "\n";
 
-            // Save information
-            fwrite(corrected, sizeof(char), size, outputFile);
+        if(!error && received_id==expected_id){
+
+        	my_aux = (unsigned char)size;
+        	aux_size = (my_aux & 0b00011111);
+            last_packet = (my_aux & 0b01000000) >> 6;
+            last_chunk = (my_aux & 0b10000000) >> 7;
+
+            if (last_packet) {
+            	if(last_chunk) {
+            		get_out = true;
+
+            		chunk_size = 0x00000000;
+            		aux_parser = (unsigned char)corrected[aux_size-2];
+            		aux_parser = aux_parser << 7;
+            		chunk_size = aux_parser;
+            		aux_parser = (unsigned char)corrected[aux_size-1];
+            		chunk_size = chunk_size | aux_parser;
+					buff.insert(buff.end(), corrected, corrected + aux_size-2);
+
+	            	chunk.data = &buff[0];
+	            	aux = buff.size();
+	            	chunk.len = (unsigned long *)&aux;
+	            	compressor->decompressChunk(&chunk, chunk_size);
+            	}else{
+            		buff.insert(buff.end(), corrected, corrected + aux_size);
+	            	chunk.data = &buff[0];
+	            	aux = buff.size();
+	            	chunk.len = (unsigned long *)&aux;
+	            	compressor->decompressChunk(&chunk, utils::CHUNK_SIZE);
+            	}
+            	buff.clear();
+            }else {
+            	buff.insert(buff.end(), corrected, corrected + aux_size);
+            }
             counter++;
 
             // Acknowledge received packet
@@ -106,12 +144,12 @@ int GoBackN::receive_text() {
         }
     }
     
-    if (outputFile != NULL) {
-        fclose(outputFile);
-        return 1;
-    } else {
-        COUT << "Error writing the file";
+    int ret = compressor->closeDecompress();
+    if (ret) {
+    	COUT << "Error writing the file";
         return 0;
+    } else {
+    	return 1;
     }
     
 }
@@ -161,7 +199,7 @@ bool GoBackN::timeoutExpired(){
     return timer_running && timeout_finished;
 }
 
-void GoBackN::createMessage(char *message, char *buffer, int i, int len){
+void GoBackN::createMessage(char *message, char *buffer, int i, int len, bool isLast){
     int pay_len;
     bool flagOut = false;
 
@@ -176,10 +214,12 @@ void GoBackN::createMessage(char *message, char *buffer, int i, int len){
         flagOut = true;
     }
     std::copy(&buffer[i*utils::PAYLOAD_L_GBN], &buffer[i*utils::PAYLOAD_L_GBN+pay_len], message);
-    if (flagOut)
-        message[utils::PAYLOAD_L_GBN+1] = (unsigned char) (pay_len+100); //Add information of the size of the payload
-    else
-        message[utils::PAYLOAD_L_GBN+1] = (unsigned char) pay_len;
+
+    char lastByte = pay_len & 0b00011111;
+    lastByte = lastByte | (flagOut << 6);
+    lastByte = lastByte | (isLast << 7);
+
+    message[utils::PAYLOAD_L_GBN + 1] = lastByte;
 
     // Introduce packet ID information
     mtx.lock();
@@ -191,6 +231,19 @@ int GoBackN::send_text(char *text) {
 
     COUT<< "Sending text...\n";
 
+    // Compress file before starting transmission
+    Chunk *cmpFile;
+    int num_chunk;
+    cmpFile = compressor->compressFile(text, &num_chunk);
+    COUT << "Number of chunks: " << num_chunk << "\n";
+
+    if (cmpFile == NULL) {
+    	COUT << "COMPRESSION ERROR!!!";
+		exit(1);
+    }
+
+
+
     // --------- DECLARE VARIABLES ----------- //
     // Go back N variables
     id_send = 0; // Next packet to be sent
@@ -198,18 +251,21 @@ int GoBackN::send_text(char *text) {
     int id_ack; // Variable to save the acknowledged packet ID
 
     // Auxiliar variables
+    int currChunk = 0;
     int len;
     int size;
     int first_p,last_p;
     bool can_send;
     bool timeout_expired = false;
-    char *buffer = utils::read_text(text, &len);
+    char *buffer;
+    unsigned char *bufferx;
     bool finished_text = false;
     bool finished_tx = false;
-    // Chunk *buffer = comp->compress(text, &len);
     char packet[utils::CODE_L];
     char message[utils::CODE_L];
 
+    buffer = (char *)cmpFile[currChunk].data;
+    len = (int)(*(cmpFile[currChunk].len));
     char packets[utils::WINDOW_SIZE+1][utils::CODE_L];
     for (int i=0; i<utils::WINDOW_SIZE+1; i++){
         std::memset(packets[i], 0x00, utils::CODE_L);
@@ -230,88 +286,104 @@ int GoBackN::send_text(char *text) {
     std::thread thread_receive(&GoBackN::receiveThread, this);
 
     // ------------- START GO BACK N -------------//
-
+    std::cout << "******** ";
+	std::cout << "Chunk: " << currChunk + 1 << "/" << num_chunk;
+	std::cout << " ********\n";
     while (1) {
 
-        if (i>=len/utils::PAYLOAD_L_GBN+extra) finished_text=true; 
+    	if(i >= len/utils::PAYLOAD_L_GBN + extra){
+    		if(currChunk == num_chunk-1) {
+    			finished_text = true;
+    		} else {
+    			currChunk++;
+    			i = 0;
+    			std::cout << "******** ";
+    			std::cout << "Chunk: " << currChunk + 1 << "/" << num_chunk;
+    			std::cout << " ********\n";
+    			buffer = (char*)cmpFile[currChunk].data;
+    			len = (int)(*(cmpFile[currChunk].len));
+    			extra = ((len % utils::PAYLOAD_L_GBN) != 0);
+    		}
+    	}
 
-        can_send = false;
-        timeout_expired = false;
-        while(!can_send && !timeout_expired){
-            mtx.lock();
-            timeout_expired = GoBackN::timeoutExpired();
-            can_send = (id_send - id_base) < utils::WINDOW_SIZE;
-            mtx.unlock();
-        }
-        if (timeout_expired){
+		can_send = false;
+		timeout_expired = false;
+		while(!can_send && !timeout_expired){
+			mtx.lock();
+			timeout_expired = GoBackN::timeoutExpired();
+			can_send = (id_send - id_base) < utils::WINDOW_SIZE;
+			mtx.unlock();
+		}
+		//Reenviar
+		if (timeout_expired){
+			mtx.lock();
+			clock_gettime(CLOCK_REALTIME, &clock_start);
+			timer_running = true;
+			first_p = id_base; last_p = id_send;
+			mtx.unlock();
 
-            mtx.lock();
-            clock_gettime(CLOCK_REALTIME, &clock_start);
-            timer_running = true; 
-            first_p = id_base; last_p = id_send;
-            mtx.unlock();
+			if (first_p > last_p) last_p += utils::WINDOW_SIZE + 1; // Because of the module WSIZE+1
+			// Resend all non acknowledged packets
+			//COUT << "Timeout expired. Resend from " << first_p << " to " << last_p-1 << "\n";
+			for(k=first_p; k < last_p; k++){
+				COUT<< "*** Resending packet number " << k << " *** \n";
 
-            if (first_p > last_p) last_p += utils::WINDOW_SIZE + 1; // Because of the module WSIZE+1
-            // Resend all non acknowledged packets
-            //COUT << "Timeout expired. Resend from " << first_p << " to " << last_p-1 << "\n";
-            for(k=first_p; k < last_p; k++){
-                COUT<< "*** Resending packet number " << k << " *** \n";
+				// ----- GENERACIO ARTIFICIAL D'ERROR ----- //
+				utils::bsc(packets[k],utils::CODE_L,0.0);
+				double num = (double)rand()/ (double) RAND_MAX;
+				if(num<1)
+					clock_gettime(CLOCK_REALTIME,&clock_now);
+					socket->write_socket(packets[k], utils::CODE_L, 0);
+					clock_gettime(CLOCK_REALTIME,&clock_start);
+					COUT << "TEMPS LIMITANT " << clock_start.tv_nsec - clock_now.tv_nsec << "\n";
 
-                // ----- GENERACIO ARTIFICIAL D'ERROR ----- //
-                utils::bsc(packets[k],utils::CODE_L,0.0);
-                double num = (double)rand()/ (double) RAND_MAX;
-                if(num<1)
-                    clock_gettime(CLOCK_REALTIME,&clock_now);
-                    socket->write_socket(packets[k], utils::CODE_L, 0);
-                    clock_gettime(CLOCK_REALTIME,&clock_start);
-                    COUT << "TEMPS LIMITANT " << clock_start.tv_nsec - clock_now.tv_nsec << "\n";
+				// This usleep is important to give time to the rx to process the
+				// previous packet. Experimentally, the time the rx needs is less than
+				// 300 ms when there are no prints, and less than 600 ms in general
+				// with prints. 1000 gives some margin (we have to add the processing time
+				// of the TX, which in this usleep is very few but in the other one is bigger).
+				usleep(200);
+			}
+		}else if(can_send && !finished_text){ //Enviar packets
+			// Create message
+			GoBackN::createMessage(message, buffer, i, len, currChunk == (num_chunk -1));
 
-                // This usleep is important to give time to the rx to process the 
-                // previous packet. Experimentally, the time the rx needs is less than 
-                // 300 ms when there are no prints, and less than 600 ms in general 
-                // with prints. 1000 gives some margin (we have to add the processing time
-                // of the TX, which in this usleep is very few but in the other one is bigger). 
-                usleep(200);
-            }
-        }else if(can_send && !finished_text){
-            // Create message
-            GoBackN::createMessage(message, buffer, i, len);
+			// Encode packet
+			encoder->encode(message, packet); //use the encoder to encode the information
 
-            // Encode packet
-            encoder->encode(message, packet); //use the encoder to encode the information
+			// Save packet in buffer
+			// We have to copy the packet, if not, the next packet will overwrite (same memory address)
+			std::copy(&packet[0], &packet[utils::CODE_L], packets[id_send]);
 
-            // Save packet in buffer
-            // We have to copy the packet, if not, the next packet will overwrite (same memory address)
-            std::copy(&packet[0], &packet[utils::CODE_L], packets[id_send]);
-            
-            COUT << "*** Sending packet number " << i << " *** \n";
-            utils::printPacket(packet, utils::CODE_L, 2);
+			COUT << "*** Sending packet number " << i << " *** \n";
+			utils::printPacket(packet, utils::CODE_L, 2);
 
-            // Send message
-            // ----- GENERACIO ARTIFICIAL D'ERROR ----- //
-            utils::bsc(packets[id_send],utils::CODE_L,0.0);
-            double num = (double)rand()/ (double) RAND_MAX;
-            if(num<1)
-                socket->write_socket(packets[id_send], utils::CODE_L, 0);
+			// Send message
+			// ----- GENERACIO ARTIFICIAL D'ERROR ----- //
+			utils::bsc(packets[id_send],utils::CODE_L,0.0);
+			double num = (double)rand()/ (double) RAND_MAX;
+			if(num<1)
+				socket->write_socket(packets[id_send], utils::CODE_L, 0);
 
-            mtx.lock();
-            if (id_send == id_base){
-                clock_gettime(CLOCK_REALTIME,&clock_start);
-                timer_running = true;
-                COUT << "Timeout started\n";
-            }
-            id_send++; id_send = id_send%(utils::WINDOW_SIZE+1);
-            COUT << "id_send updated to " << id_send << "\n"; 
-            mtx.unlock(); 
+			mtx.lock();
+			if (id_send == id_base){
+				clock_gettime(CLOCK_REALTIME,&clock_start);
+				timer_running = true;
+				COUT << "Timeout started\n";
+			}
+			id_send++; id_send = id_send%(utils::WINDOW_SIZE+1);
+			COUT << "id_send updated to " << id_send << "\n";
+			mtx.unlock();
 
-            usleep(200);
+			usleep(200);
 
-            i++;   
-        }
-        mtx.lock();
-        finished_tx = finished_text && id_send==id_base;
-        mtx.unlock();
-        if (finished_tx) break;
+			i++;
+		}
+		mtx.lock();
+		finished_tx = finished_text && id_send==id_base;
+		mtx.unlock();
+		if (finished_tx) break;
+
     }
     COUT<< "Finished transmitting!\n";
     mtx.lock();

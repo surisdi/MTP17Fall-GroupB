@@ -35,7 +35,9 @@ namespace utils{
 
     //Compressor constants
     constexpr int MAX_CHUNK = 1000;
-    constexpr int CHUNK_SIZE = 1024;
+    constexpr int CHUNK_SIZE = 65536;
+    constexpr int CHUNK_SIZE_BYTE = 2; //Size of last chunk has to be send!
+
     extern const int sizeCompressed;
     extern const int COMPRESSION_RATIO;
 
