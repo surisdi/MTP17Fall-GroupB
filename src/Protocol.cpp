@@ -145,7 +145,7 @@ int StopWait::send_text(char *text) {
             pay_len = utils::PAYLOAD_L;
         }
 
-	if(i*utils::PAYLOAD_L + pay_len + 1 == len){
+	if(i*utils::PAYLOAD_L + pay_len  == len){
 		flagOut = 1;
 	}
 
