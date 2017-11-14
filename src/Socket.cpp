@@ -24,7 +24,7 @@
 #define PORT2 8889
 #define BUFLEN 512
 
-//#include "RF24/RF24.h"
+#include "RF24/RF24.h"
 
 
 /***************** Base Class Socket *****************/
@@ -34,7 +34,7 @@ Socket::Socket(bool mode) {
 Socket::~Socket(){}
 
 /***************** Derived Class Socketradio *****************/
-/*
+
 SocketRadio::SocketRadio(bool mode): Socket(mode){
     // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz 
     radio_sender = new RF24(25, 0);
@@ -123,11 +123,9 @@ bool SocketRadio::write_socket(const char *buff, int len, int mode){
 }
 
 
-SocketRadio::~SocketRadio() {
-    
-}
+SocketRadio::~SocketRadio() {}
 
-*/
+
 
 /***************** Derived Class SocketTCP *****************/
 
