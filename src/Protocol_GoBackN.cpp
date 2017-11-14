@@ -5,6 +5,8 @@
 #include "utils.hpp"
 
 #include <cstdio>
+#include <queue>
+#include <atomic>
 #include <cstdlib> // for the random
 #include <unistd.h>
 #include <cstring>
@@ -23,30 +25,28 @@ Protocol(comp, enc, sck)
     clock_gettime(CLOCK_REALTIME, &clock_start);
     COUT<< "Go Back N created\n";
 }
-
+/*****************************************************/
+/********************* Receiver **********************/
+/*****************************************************/
 int GoBackN::receive_text() {
-    
     COUT<< "Receiving text...\n";
-
-    // Go Back N parameters
-    int expected_id = 0;
-    int received_id = -1;
+    std::atomic<bool> last_packet = false;
+    // https://stackoverflow.com/questions/8408776/queue-of-array-of-characters
+    std::queue<char*> q;
     
+    std::thread thread_queue(&GoBackN::receiverQueueThread, this);
+    std::thread thread_processing(&GoBackN::receiverProcessingThread, this); 
+    while (!last_packet) {
+        thread_queue.join();
+        thread_processing.join();
+        COUT<< "Finalized receiving!\n";
+        return(1);
+    }
+}
+
+// Receive messages and add them to a Queue
+void GoBackN::receiverQueueThread(std::atomic<bool>* last_packet, std::queue<char*> &q){
     char packet[utils::CODE_L];
-    char corrected[utils::CODE_L];
-    
-    FILE *outputFile = fopen("output.txt", "w+b");
-    
-    int counter = 0;
-    char ack_flags = 0x00;
-    bool error;
-    bool result;
-    int decode_info;
-    unsigned int size;
-    bool last_packet = false;
-    double num;
-    //clock_gettime(CLOCK_REALTIME,&clock_now);
-
     while (!last_packet) {
         //clock_gettime(CLOCK_REALTIME,&clock_start);
         //std::cout << "Diferencia temps en nanos: " << clock_start.tv_nsec - clock_now.tv_nsec << "\n";
@@ -57,9 +57,40 @@ int GoBackN::receive_text() {
             break;
         }
         
-        COUT<< "*** Received packet " << counter << " *** \n";
         utils::printPacket(packet, utils::CODE_L, 2);
-        
+
+        //TODO Add to queue
+        mtx2.lock();
+        q.push(packet);
+        mtx2.unlock();
+    }
+}
+
+// Get messages form the Queue and process them
+void GoBackN::receiverProcessingThread(std::atomic<bool>* last_packet, std::queue<char*> &q){
+    // Go Back N parameters
+    int expected_id = 0;
+    int received_id = -1;
+    
+    char packet[utils::CODE_L];
+    char corrected[utils::CODE_L];
+
+    int counter = 0;
+    char ack_flags = 0x00;
+    bool error;
+    bool result;
+    int decode_info;
+    unsigned int size;
+    double num;
+
+    FILE *outputFile = fopen("output.txt", "w+b");
+
+    while((!last_packet) && (!q.empty())){
+        mtx2.lock();
+        packet = q.front();
+        q.pop();
+        mtx2.unlock();
+        COUT<< "*** Received packet " << counter << " *** \n";
         error = encoder->decode(packet, corrected);
         
         if(error){
@@ -105,88 +136,16 @@ int GoBackN::receive_text() {
                 socket->write_socket(&ack_flags, 1, 1);
         }
     }
-    
     if (outputFile != NULL) {
         fclose(outputFile);
-        return 1;
     } else {
         COUT << "Error writing the file";
-        return 0;
     }
-    
 }
 
-void GoBackN::receiveThread() {
-    char packet_ack[utils::LEN_ACK];
-    char *p_packet_ack = packet_ack;
-    int ack_num;
-    bool finished_p = false;
-    int n, ret, isack;
-    int timeout_receive = 1000;
-    while(!finished_p){
-        // We do it with a timeout so that periodically it checks if the program has ended
-        // Wait for ack
-        n = socket->read_non_blocking(p_packet_ack, utils::LEN_ACK, timeout_receive, &ret);
-        if (ret == 0 || n == 0){
-            // Do nothing, continue listening, but check finished_protocol
-        }else{
-            isack = isAck(p_packet_ack);
-            if (isack == 1){
-                ack_num = ((*p_packet_ack) & 0x1F);
-                COUT << "New ack received confirming " << ack_num << "\n";
-                mtx.lock();
-                id_base = ack_num + 1;
-                if(id_send == id_base){
-                    timer_running = false;
-                }else{
-                    timer_running = true;
-                    clock_gettime(CLOCK_REALTIME, &clock_start);
-                }
-                mtx.unlock();
-            }
-        }
-
-        mtx.lock();
-        finished_p = finished_protocol;
-        mtx.unlock();
-    }   
-}
-
-bool GoBackN::timeoutExpired(){
-    // Has to be used inside a lock()
-    int timeout = 50; // milliseconds
-    clock_gettime(CLOCK_REALTIME,&clock_now);
-    bool timeout_finished = (((clock_now.tv_sec*1000 + clock_now.tv_nsec/1000000) - 
-                            (clock_start.tv_sec*1000 + clock_start.tv_nsec/1000000)) > timeout );
-    return timer_running && timeout_finished;
-}
-
-void GoBackN::createMessage(char *message, char *buffer, int i, int len){
-    int pay_len;
-    bool flagOut = false;
-
-    if ( (i + 1) * utils::PAYLOAD_L_GBN > len ) {
-        pay_len = len - ( i * utils::PAYLOAD_L_GBN );
-    } else {
-        pay_len = utils::PAYLOAD_L_GBN;
-    }
-
-    // Introduce packet length information
-    if(i*utils::PAYLOAD_L_GBN + pay_len == len){
-        flagOut = true;
-    }
-    std::copy(&buffer[i*utils::PAYLOAD_L_GBN], &buffer[i*utils::PAYLOAD_L_GBN+pay_len], message);
-    if (flagOut)
-        message[utils::PAYLOAD_L_GBN+1] = (unsigned char) (pay_len+100); //Add information of the size of the payload
-    else
-        message[utils::PAYLOAD_L_GBN+1] = (unsigned char) pay_len;
-
-    // Introduce packet ID information
-    mtx.lock();
-    message[utils::PAYLOAD_L_GBN] =  (unsigned char) id_send;
-    mtx.unlock();
-}
-
+/*****************************************************/
+/********************** Transmiter *******************/
+/*****************************************************/
 int GoBackN::send_text(char *text) {
 
     COUT<< "Sending text...\n";
@@ -320,6 +279,80 @@ int GoBackN::send_text(char *text) {
     thread_receive.join();
     return 0;
 }
+// Thread to receive ACKs
+void GoBackN::receiveThread() {
+    char packet_ack[utils::LEN_ACK];
+    char *p_packet_ack = packet_ack;
+    int ack_num;
+    bool finished_p = false;
+    int n, ret, isack;
+    int timeout_receive = 1000;
+    while(!finished_p){
+        // We do it with a timeout so that periodically it checks if the program has ended
+        // Wait for ack
+        n = socket->read_non_blocking(p_packet_ack, utils::LEN_ACK, timeout_receive, &ret);
+        if (ret == 0 || n == 0){
+            // Do nothing, continue listening, but check finished_protocol
+        }else{
+            isack = isAck(p_packet_ack);
+            if (isack == 1){
+                ack_num = ((*p_packet_ack) & 0x1F);
+                COUT << "New ack received confirming " << ack_num << "\n";
+                mtx.lock();
+                id_base = ack_num + 1;
+                if(id_send == id_base){
+                    timer_running = false;
+                }else{
+                    timer_running = true;
+                    clock_gettime(CLOCK_REALTIME, &clock_start);
+                }
+                mtx.unlock();
+            }
+        }
+
+        mtx.lock();
+        finished_p = finished_protocol;
+        mtx.unlock();
+    }   
+}
+/*****************************************************/
+/*********************** Other  **********************/
+/*****************************************************/
+bool GoBackN::timeoutExpired(){
+    // Has to be used inside a lock()
+    int timeout = 50; // milliseconds
+    clock_gettime(CLOCK_REALTIME,&clock_now);
+    bool timeout_finished = (((clock_now.tv_sec*1000 + clock_now.tv_nsec/1000000) - 
+                            (clock_start.tv_sec*1000 + clock_start.tv_nsec/1000000)) > timeout );
+    return timer_running && timeout_finished;
+}
+
+void GoBackN::createMessage(char *message, char *buffer, int i, int len){
+    int pay_len;
+    bool flagOut = false;
+
+    if ( (i + 1) * utils::PAYLOAD_L_GBN > len ) {
+        pay_len = len - ( i * utils::PAYLOAD_L_GBN );
+    } else {
+        pay_len = utils::PAYLOAD_L_GBN;
+    }
+
+    // Introduce packet length information
+    if(i*utils::PAYLOAD_L_GBN + pay_len == len){
+        flagOut = true;
+    }
+    std::copy(&buffer[i*utils::PAYLOAD_L_GBN], &buffer[i*utils::PAYLOAD_L_GBN+pay_len], message);
+    if (flagOut)
+        message[utils::PAYLOAD_L_GBN+1] = (unsigned char) (pay_len+100); //Add information of the size of the payload
+    else
+        message[utils::PAYLOAD_L_GBN+1] = (unsigned char) pay_len;
+
+    // Introduce packet ID information
+    mtx.lock();
+    message[utils::PAYLOAD_L_GBN] =  (unsigned char) id_send;
+    mtx.unlock();
+}
+
 
 GoBackN::~GoBackN() {
     COUT<< "Go Back N destroyed...\n";

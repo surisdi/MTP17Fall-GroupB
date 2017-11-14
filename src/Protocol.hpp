@@ -8,6 +8,8 @@
 #include "Encoder.hpp"
 
 #include <mutex>
+#include <queue>
+#include <atomic>
 #include <sys/time.h>
 
 /***************** Base Class Protocol *****************/
@@ -24,6 +26,7 @@ protected:
     int createPacket(char *);
 
     std::mutex mtx;
+    std::mutex mtx2;
 
     bool finished_protocol;
     struct timespec clock_start, clock_now; 
@@ -74,7 +77,8 @@ public:
     virtual ~GoBackN();
 
 private:
-
+    void receiverQueueThread(std::atomic<bool>* last_packet, std::queue<char*> &q);
+    void receiverProcessingThread(std::atomic<bool>* last_packet, std::queue<char*> &q);
     void receiveThread();
 
     bool timeoutExpired();
