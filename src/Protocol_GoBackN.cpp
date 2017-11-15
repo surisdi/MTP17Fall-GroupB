@@ -13,8 +13,15 @@
 #include <mutex>
 #include <sys/time.h>
 #include <map>
+#include <wiringPi.h>
 
+#define BUTTON_PIN 1
+volatile int eventCounter = 0;
 /***************** Derived Class Go Back N *****************/
+
+void myInterrupt(void) {
+    eventCounter++;
+}
 
 GoBackN::GoBackN(Compressor *comp, Encoder *enc, Socket *sck):
 Protocol(comp, enc, sck)
@@ -230,6 +237,9 @@ void GoBackN::createMessage(char *message, char *buffer, int i, int len, bool is
 int GoBackN::send_text(char *text) {
 
     COUT<< "Sending text...\n";
+
+    // Register interruption
+    wiringPiISR(BUTTON_PIN, INT_EDGE_FALLING, &myInterrupt)
 
     // Compress file before starting transmission
     Chunk *cmpFile;

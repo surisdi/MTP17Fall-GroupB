@@ -56,10 +56,11 @@ SocketRadio::SocketRadio(bool mode): Socket(mode){
 
     // Setup the spec the radio for the ack tx
     radio_ack->begin();
-    radio_ack->setChannel(97);
+    radio_ack->setChannel(99);
     radio_ack->setPALevel(RF24_PA_MIN);
     radio_ack->setDataRate(RF24_2MBPS);
     radio_ack->setAutoAck(0);
+    radio_ack->maskIRQ(1,1,0);  // Mask all IRQ triggers except for the receive (1 mask, 0 no mask)
     //radio_sender->setRetries(2,15);
     radio_ack->setCRCLength(RF24_CRC_8);
     
