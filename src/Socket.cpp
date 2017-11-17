@@ -15,7 +15,6 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <cstring>
-
 #include <iostream>
 
 #include <netdb.h>
@@ -38,27 +37,28 @@ Socket::~Socket(){}
 SocketRadio::SocketRadio(bool mode): Socket(mode){
     // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz 
     radio_sender = new RF24(25, 0);
-    radio_ack = new RF24(25, 1);
+    radio_ack = new RF24(24, 1);
     
     // radio_sender pipe addresses for the 2 nodes to communicate. 
-    const uint64_t addresses[2] = { 0xABCDABCD71LL, 0x544d52687CLL };
+    const uint64_t addresses[2] = {0xABCDABCD71LL, 0x544d52687CLL};
+    //const uint64_t addresses[4] = { 0xABCDABCD71LL, 0xBACDBACD71LL, 0x533d52687CLL, 0x544d52687CLL};
     
     // Setup the spec the radio for the data tx
     radio_sender->begin();
-    radio_sender->setChannel(97);
+    radio_sender->setChannel(90);
     radio_sender->setPALevel(RF24_PA_MIN);
-    radio_sender->setDataRate(RF24_2MBPS);
+    radio_sender->setDataRate(RF24_1MBPS);
     radio_sender->setAutoAck(0);
     //radio_sender->setRetries(2,15);
     radio_sender->setCRCLength(RF24_CRC_8);
-    
     radio_sender->printDetails();
 
     // Setup the spec the radio for the ack tx
     radio_ack->begin();
-    radio_ack->setChannel(97);
+    radio_ack->setChannel(99);
     radio_ack->setPALevel(RF24_PA_MIN);
-    radio_ack->setDataRate(RF24_2MBPS);
+    radio_ack->setDataRate(RF24_1MBPS);
+    //radio_ack->maskIRQ(1,1,0);
     radio_ack->setAutoAck(0);
     //radio_sender->setRetries(2,15);
     radio_ack->setCRCLength(RF24_CRC_8);
@@ -76,49 +76,76 @@ SocketRadio::SocketRadio(bool mode): Socket(mode){
 
 
 bool SocketRadio::read_blocking(char *buff, int len){
-
+    mtx_radio.lock();
     radio_sender->startListening();
-    while(!radio_sender->available()){
+    mtx_radio.unlock();
+    bool avail=false;
+    while(!avail){
+	mtx_radio.lock();
+	avail=radio_sender->available();
+	mtx_radio.unlock();
      	// sleep
     }
     COUT<< "Is available\n\n";
-    while(radio_sender->available()){
+    //while(radio_sender->available()){
+	mtx_radio.lock();
 	radio_sender->read(buff, len); // Per aqui pot fallar
-    }
+	mtx_radio.unlock();
+    //}
 
     return 1;
 }
 
 bool SocketRadio::read_non_blocking(char *buff, int len, int timeout, int *timeout_info){
+    //COUT << "Before lock 1\n";
+    mtx_radio.lock();
     radio_ack->startListening();
+    mtx_radio.unlock();
+    //COUT << "After lock 1\n";
     unsigned long startTime = millis();
     *timeout_info = 0;
-    while(!radio_ack->available()){
+    bool avail=false;
+    while(!avail){
+        //COUT << "Before lock 2\n";
+  	mtx_radio.lock();
+	avail=radio_ack->available();
+	mtx_radio.unlock();
+	//COUT << "After lock 2\n";
         if(millis()-startTime > timeout){
             return -1;
         }
         //sleep(1);
     }
-    while(radio_ack->available()){
+    //while(radio_ack->available()){
         *timeout_info = 1;
+	//COUT << "Before lock3\n";
+	mtx_radio.lock();
         radio_ack->read(buff, len);
-    }
+	mtx_radio.unlock();
+	//COUT << "After lock3\n";
+    //}
     return 1;
 }
 
 bool SocketRadio::write_socket(const char *buff, int len, int mode){
     if(mode == 0){
+	mtx_radio.lock();
         radio_sender->stopListening();
+	
         // Open writing pipe
         //TODO check the address for possible problems with the role
-
+	
         int result = (int) radio_sender->write(buff, len);
         radio_sender->txStandBy();
+	radio_ack->startListening();
+	mtx_radio.unlock();
     }
     else{
+	mtx_radio.lock();
         radio_ack->stopListening();
         int result = (int) radio_ack->write(buff, len);
         radio_ack->txStandBy();
+	mtx_radio.unlock();
     }
 }
 

@@ -13,7 +13,8 @@
 #include <mutex>
 #include <sys/time.h>
 #include <map>
-
+#include <bcm2835.h>
+#define BUTTON_PI 1
 /***************** Derived Class Go Back N *****************/
 
 GoBackN::GoBackN(Compressor *comp, Encoder *enc, Socket *sck):
@@ -164,10 +165,41 @@ void GoBackN::receiveThread() {
     while(!finished_p){
         // We do it with a timeout so that periodically it checks if the program has ended
         // Wait for ack
+	//COUT << "*** About to read ACK ***\n";
         n = socket->read_non_blocking(p_packet_ack, utils::LEN_ACK, timeout_receive, &ret);
+        //COUT << "*** Have read ACK ***\n";
+	if (ret == 0 || n == 0){
+            // Do nothing, continue listening, but check finished_protocol
+        }else{
+	    COUT << "ACK received\n";
+            isack = isAck(p_packet_ack);
+            if (isack == 1){
+                ack_num = ((*p_packet_ack) & 0x1F);
+                COUT << "New ack received confirming " << ack_num << "\n";
+                mtx.lock();
+                id_base = ack_num + 1;id_base=id_base%(utils::WINDOW_SIZE+1);
+                if(id_send == id_base){
+                    timer_running = false;
+                }else{
+                    timer_running = true;
+                    clock_gettime(CLOCK_REALTIME, &clock_start);
+                }
+                mtx.unlock();
+            }
+        }
+
+        mtx.lock();
+        finished_p = finished_protocol;
+        mtx.unlock();
+    }   
+}
+
+/*void GoBackN::interruption(void) {
+	n = socket->read_non_blocking(p_packet_ack, utils::LEN_ACK, timeout_receive, &$
         if (ret == 0 || n == 0){
             // Do nothing, continue listening, but check finished_protocol
         }else{
+            COUT << "ACK received\n";
             isack = isAck(p_packet_ack);
             if (isack == 1){
                 ack_num = ((*p_packet_ack) & 0x1F);
@@ -184,11 +216,7 @@ void GoBackN::receiveThread() {
             }
         }
 
-        mtx.lock();
-        finished_p = finished_protocol;
-        mtx.unlock();
-    }   
-}
+}*/
 
 bool GoBackN::timeoutExpired(){
     // Has to be used inside a lock()
@@ -227,8 +255,8 @@ void GoBackN::createMessage(char *message, char *buffer, int i, int len, bool is
     mtx.unlock();
 }
 
-int GoBackN::send_text(char *text) {
 
+int GoBackN::send_text(char *text) {
     COUT<< "Sending text...\n";
 
     // Compress file before starting transmission
@@ -241,8 +269,8 @@ int GoBackN::send_text(char *text) {
     	COUT << "COMPRESSION ERROR!!!";
 		exit(1);
     }
-
-
+    // wiringPiSetup();
+    //wiringPiISR(BUTTON_PIN, INT_EDGE_FALLING, &GoBackN::interruption);
 
     // --------- DECLARE VARIABLES ----------- //
     // Go back N variables
@@ -279,6 +307,7 @@ int GoBackN::send_text(char *text) {
     // ACK parameters
     bool rec_ack;
     int flagOut = 0;
+    int aux;
 
     // ------------ INITIATE THREADS ------------- //
 
@@ -311,7 +340,10 @@ int GoBackN::send_text(char *text) {
 		while(!can_send && !timeout_expired){
 			mtx.lock();
 			timeout_expired = GoBackN::timeoutExpired();
-			can_send = (id_send - id_base) < utils::WINDOW_SIZE;
+			aux=(id_send-id_base)%(utils::WINDOW_SIZE+1);
+			if( aux < 0) aux+=utils::WINDOW_SIZE+1;
+			can_send = aux < utils::WINDOW_SIZE;
+			//COUT << aux << "\n";
 			mtx.unlock();
 		}
 		//Reenviar
@@ -324,25 +356,25 @@ int GoBackN::send_text(char *text) {
 
 			if (first_p > last_p) last_p += utils::WINDOW_SIZE + 1; // Because of the module WSIZE+1
 			// Resend all non acknowledged packets
-			//COUT << "Timeout expired. Resend from " << first_p << " to " << last_p-1 << "\n";
+			COUT << "Timeout expired. Resend from " << first_p << " to " << last_p-1 << "\n";
 			for(k=first_p; k < last_p; k++){
-				COUT<< "*** Resending packet number " << k << " *** \n";
+				//COUT<< "*** Resending packet number " << k << " *** \n";
 
 				// ----- GENERACIO ARTIFICIAL D'ERROR ----- //
-				utils::bsc(packets[k],utils::CODE_L,0.0);
+				//utils::bsc(packets[k],utils::CODE_L,0.0);
 				double num = (double)rand()/ (double) RAND_MAX;
-				if(num<1)
-					clock_gettime(CLOCK_REALTIME,&clock_now);
+				//if(num<1)
+					//clock_gettime(CLOCK_REALTIME,&clock_now);
 					socket->write_socket(packets[k], utils::CODE_L, 0);
-					clock_gettime(CLOCK_REALTIME,&clock_start);
-					COUT << "TEMPS LIMITANT " << clock_start.tv_nsec - clock_now.tv_nsec << "\n";
+					//clock_gettime(CLOCK_REALTIME,&clock_start);
+					//COUT << "TEMPS LIMITANT " << clock_start.tv_nsec - clock_now.tv_nsec << "\n";
 
 				// This usleep is important to give time to the rx to process the
 				// previous packet. Experimentally, the time the rx needs is less than
 				// 300 ms when there are no prints, and less than 600 ms in general
 				// with prints. 1000 gives some margin (we have to add the processing time
 				// of the TX, which in this usleep is very few but in the other one is bigger).
-				usleep(200);
+				usleep(2000);
 			}
 		}else if(can_send && !finished_text){ //Enviar packets
 			// Create message
@@ -375,7 +407,7 @@ int GoBackN::send_text(char *text) {
 			COUT << "id_send updated to " << id_send << "\n";
 			mtx.unlock();
 
-			usleep(200);
+			usleep(2000);
 
 			i++;
 		}

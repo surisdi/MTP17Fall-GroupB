@@ -19,6 +19,7 @@
 #define PAYLOAD 25
 
 #include "RF24/RF24.h"
+#include <mutex>
 
 
 /***************** Base Class Socket *****************/
@@ -83,6 +84,7 @@ class SocketRadio: public Socket {
 private:
     RF24* radio_sender;
     RF24* radio_ack;
+    std::mutex mtx_radio;
 public:
     SocketRadio(bool mode);
     
