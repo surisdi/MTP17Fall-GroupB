@@ -26,9 +26,9 @@ class Encoder {
 public:
     Encoder(){}
     
-    virtual bool encode(const char *input, char *output) = 0;
+    virtual bool encode(const byte *input, byte *output) = 0;
     
-    virtual bool decode(const char *input, char *output) = 0;
+    virtual bool decode(const byte *input, byte *output) = 0;
     
     virtual ~Encoder(){}
 };
@@ -63,20 +63,21 @@ public:
         COUT << "EncoderRS created\n";
     }
     
-    inline bool encode(const char *input, char *output) {
-        spacket.assign(input, code_length);
+    inline bool encode(const byte *input, byte *output) {
+        spacket.assign((const char *)input, code_length);
         encoder->encode(spacket, block);
 
         for (int k=0; k < code_length; k++) {
             output[k] = block[k];
         }
+
         return 0;
     }
     
-    inline bool decode(const char *input, char *output) {
+    inline bool decode(const byte *input, byte *output) {
         int error = 0;
         
-        spacket.assign(input, code_length);
+        spacket.assign((const char *)input, code_length);
         data = spacket.substr(0, data_length);
         fec = spacket.substr(data_length, fec_length);
         
@@ -89,7 +90,7 @@ public:
             
         } else{
             block.data_to_string(corrected);
-	    memcpy (output, (char *) corrected.c_str(), code_length);
+            memcpy(output, (byte *) corrected.c_str(), code_length);
         }
         
         return error;

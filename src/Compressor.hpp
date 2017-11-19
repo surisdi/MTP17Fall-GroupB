@@ -10,25 +10,28 @@ class Compressor {
 
 protected:
 	int compressionRate;
-	int n_chunks;
 	FILE *outputFile;
-	Chunk listChunk[utils::MAX_CHUNK];
-
-	unsigned char dataUncompressed[utils::CHUNK_SIZE];
+	byte dataUncompressed[utils::CHUNK_SIZE];
 	unsigned long sizeDataUncompressed;
+
+public:
+	Chunk listChunk[utils::MAX_CHUNK];
+	int n_chunks;
+
+
 
 
 public:
 	// Compression ratio 0-9 (9 maximum compression)
 	Compressor(int compRate);
 
-	virtual int compressFile(char *input, Chunk *output, int *num_chunk) = 0;
+	virtual Chunk * compressFile(const char *input, int *num_chunks) = 0;
 
-	virtual int startDecompress(char *file_name) = 0;
+	virtual int startDecompress(const char *file_name) = 0;
 
 	virtual int closeDecompress() = 0;
 
-	virtual int decompressChunk(Chunk *input, int chunk_size, char *output) = 0;
+	virtual int decompressChunk(Chunk *input, int chunk_size) = 0;
 
 	virtual ~Compressor();
 };
@@ -40,13 +43,13 @@ class Compressor1: public Compressor {
 public:
 	Compressor1(int compRate);
 
-	virtual int compressFile(char *input, Chunk *output, int *num_chunk) override;
+	virtual Chunk * compressFile(const char *input, int *num_chunks) override;
 
-	virtual int startDecompress(char *file_name) override;
+	virtual int startDecompress(const char *file_name) override;
 
 	virtual int closeDecompress() override;
 
-	virtual int decompressChunk(Chunk *input, int chunk_size, char *output) override;
+	virtual int decompressChunk(Chunk *input, int chunk_size) override;
 
 	virtual ~Compressor1();
 };

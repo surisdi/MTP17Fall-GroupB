@@ -21,12 +21,13 @@ protected:
     Encoder *encoder;
     Socket *socket;
     
-    int isAck(const char* r_ack);
-    
-    int createPacket(char *);
+    int isAck(const byte* r_ack);
 
     std::mutex mtx;
     std::mutex mtx2;
+    
+    bool lastPacket;
+    std::queue<byte> q;
 
     bool finished_protocol;
     struct timespec clock_start, clock_now; 
@@ -58,7 +59,7 @@ public:
 private:
     void receiveThread();
 
-    virtual void createMessage(char *message, char *buffer, int i, int len);
+    virtual void createMessage(byte *message, byte *buffer, int i, int len);
 
     int flag_ack; // 1 ACK, 0 NOTHING RECEIVED, -1 NACK
     int flag_pac_num;
@@ -77,16 +78,18 @@ public:
     virtual ~GoBackN();
 
 private:
-    void receiverQueueThread(std::atomic<bool>* last_packet, std::queue<char*> &q);
-    void receiverProcessingThread(std::atomic<bool>* last_packet, std::queue<char*> &q);
+    void receiverQueueThread();
+    void receiverProcessingThread();
     void receiveThread();
 
     bool timeoutExpired();
 
-    virtual void createMessage(char *message, char *buffer, int i, int len);
+    void createMessage(byte *message, byte *buffer, int i, int len, bool isLast);
 
-    int id_send; // Next packet to be sent
+    bool parseMessage(byte *message, byte flags, byte previous, unsigned int *chunkSize, byte *dataSize, bool *lastPacket);
+
     int id_base; // Expected packet to be acknowledged
+    int id_send; // Next packet to be sent
 };
 
 
