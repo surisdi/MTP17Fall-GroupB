@@ -23,26 +23,24 @@
 #define PORT2 8889
 #define BUFLEN 512
 
-#include "RF24/RF24.h"
-
 
 /***************** Base Class Socket *****************/
-Socket::Socket(bool mode) {
-    this->mode = mode;
-}
+Socket::Socket(bool mode): mode(mode),
+socket_id(0){}
+
 Socket::~Socket(){}
 
 /***************** Derived Class Socketradio *****************/
-
+/*
 SocketRadio::SocketRadio(bool mode): Socket(mode){
-    // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz 
+    // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz
     radio_sender = new RF24(25, 0);
     radio_ack = new RF24(24, 1);
-    
-    // radio_sender pipe addresses for the 2 nodes to communicate. 
+
+    // radio_sender pipe addresses for the 2 nodes to communicate.
     const uint64_t addresses[2] = {0xABCDABCD71LL, 0x544d52687CLL};
     //const uint64_t addresses[4] = { 0xABCDABCD71LL, 0xBACDBACD71LL, 0x533d52687CLL, 0x544d52687CLL};
-    
+
     // Setup the spec the radio for the data tx
     radio_sender->begin();
     radio_sender->setChannel(90);
@@ -62,9 +60,9 @@ SocketRadio::SocketRadio(bool mode): Socket(mode){
     radio_ack->setAutoAck(0);
     //radio_sender->setRetries(2,15);
     radio_ack->setCRCLength(RF24_CRC_8);
-    
+
     radio_ack->printDetails();
-    
+
     if(mode){
         radio_sender->openWritingPipe(addresses[1]);
         radio_ack->openReadingPipe(1, addresses[0]);
@@ -74,199 +72,77 @@ SocketRadio::SocketRadio(bool mode): Socket(mode){
     }
 }
 
-
-bool SocketRadio::read_blocking(char *buff, int len){
+bool SocketRadio::read_blocking(byte *buff, int len){
     mtx_radio.lock();
     radio_sender->startListening();
     mtx_radio.unlock();
+
     bool avail=false;
     while(!avail){
-	mtx_radio.lock();
-	avail=radio_sender->available();
-	mtx_radio.unlock();
+    	mtx_radio.lock();
+		avail=radio_sender->available();
+		mtx_radio.unlock();
      	// sleep
     }
     COUT<< "Is available\n\n";
-    //while(radio_sender->available()){
-	mtx_radio.lock();
+
+    mtx_radio.lock();
 	radio_sender->read(buff, len); // Per aqui pot fallar
 	mtx_radio.unlock();
-    //}
 
     return 1;
 }
 
-bool SocketRadio::read_non_blocking(char *buff, int len, int timeout, int *timeout_info){
-    //COUT << "Before lock 1\n";
+bool SocketRadio::read_non_blocking(byte *buff, int len, int timeout, int *timeout_info){
     mtx_radio.lock();
     radio_ack->startListening();
     mtx_radio.unlock();
-    //COUT << "After lock 1\n";
+
     unsigned long startTime = millis();
     *timeout_info = 0;
     bool avail=false;
     while(!avail){
-        //COUT << "Before lock 2\n";
-  	mtx_radio.lock();
-	avail=radio_ack->available();
-	mtx_radio.unlock();
-	//COUT << "After lock 2\n";
-        if(millis()-startTime > timeout){
-            return -1;
-        }
+    	mtx_radio.lock();
+    	avail=radio_ack->available();
+    	mtx_radio.unlock();
+    	if(millis()-startTime > timeout){
+    		return -1;
+    	}
         //sleep(1);
     }
-    //while(radio_ack->available()){
-        *timeout_info = 1;
-	//COUT << "Before lock3\n";
+	*timeout_info = 1;
 	mtx_radio.lock();
-        radio_ack->read(buff, len);
+	radio_ack->read(buff, len);
 	mtx_radio.unlock();
-	//COUT << "After lock3\n";
-    //}
+
     return 1;
 }
 
-bool SocketRadio::write_socket(const char *buff, int len, int mode){
+bool SocketRadio::write_socket(const byte *buff, int len, int mode){
     if(mode == 0){
-	mtx_radio.lock();
+    	mtx_radio.lock();
         radio_sender->stopListening();
-	
+
         // Open writing pipe
         //TODO check the address for possible problems with the role
-	
+
         int result = (int) radio_sender->write(buff, len);
         radio_sender->txStandBy();
-	radio_ack->startListening();
-	mtx_radio.unlock();
+        radio_ack->startListening();
+        mtx_radio.unlock();
     }
     else{
-	mtx_radio.lock();
+    	mtx_radio.lock();
         radio_ack->stopListening();
         int result = (int) radio_ack->write(buff, len);
         radio_ack->txStandBy();
-	mtx_radio.unlock();
+        mtx_radio.unlock();
     }
 }
 
 
 SocketRadio::~SocketRadio() {}
-
-
-
-/***************** Derived Class SocketTCP *****************/
-
-SocketTCP::SocketTCP(bool mode, char* ip): Socket(mode){
-    bool isServer = mode;
-    int port = TCP_PORT;
-    if (isServer){
-        int sockfd, newsockfd, portno;
-        socklen_t clilen;
-        
-        struct sockaddr_in serv_addr, cli_addr;
-        int n;
-        COUT<< "Waiting for a connection \n";
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0){
-            printf("ERROR opening socket");
-        }
-        bzero((char *) &serv_addr, sizeof(serv_addr));
-        portno = port;
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_addr.s_addr = INADDR_ANY;
-        serv_addr.sin_port = htons(portno);
-        if (bind(sockfd, (struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0){
-            printf("ERROR on binding");
-        }
-        listen(sockfd,5);
-        clilen = sizeof(cli_addr);
-        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-        if (newsockfd < 0){
-            printf("ERROR on accept");
-        }else{
-            printf("You are connected \n");
-        }
-        
-        socket_id = newsockfd;
-        
-        //newsockfd contains the address of the client we are connected to
-    }else{
-        int sockfd, portno, n;
-        
-        struct sockaddr_in serv_addr;
-        struct hostent *server;
-        
-        portno = port;
-        COUT<< "Trying to connect to a server \n";
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0){
-            printf("ERROR opening socket");
-        }
-        server = gethostbyname(ip);
-        if (server == NULL) {
-            fprintf(stderr,"ERROR, no such host\n");
-            exit(0);
-        }
-        bzero((char *) &serv_addr, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        bcopy((char *)server->h_addr,
-              (char *)&serv_addr.sin_addr.s_addr,
-              server->h_length);
-        serv_addr.sin_port = htons(portno);
-        int info=connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr));
-        if (info < 0){
-            printf("ERROR connecting\n");
-        }
-        else{
-            printf("You are connected \n");
-        }
-        
-        socket_id = sockfd;
-        
-        //sockfd contains the serveraddress
-    }
-}
-
-bool SocketTCP::read_non_blocking(char* buff, int len, int timeout, int *timeout_info){
-    
-    struct pollfd fds; // Polling system for timeouts
-    fds.fd = socket_id;
-    fds.events = POLLIN;
-    
-    *timeout_info = poll(&fds, 1, timeout);
-    printf("\n Timeout info: %i\n", *timeout_info);
-    int n = -2;
-    switch(*timeout_info) {
-        case -1:
-            printf("\n Error Poll \n");
-            break;
-        case 0:
-            printf("\n Timeout Expired \n");
-            break;
-        default:
-            return read(socket_id, buff, len);
-    }
-    
-    return 0;
-}
-
-bool SocketTCP::read_blocking(char* buff, int len){
-    return read (socket_id, buff, len);
-}
-
-bool SocketTCP::write_socket(const char* buff, int len, int mode){
-    int n = write(socket_id, buff, len);
-    if (n < 0){
-        printf("ERROR writing to socket");
-        return 0;
-    }
-    
-    return 1;
-}
-
-SocketTCP::~SocketTCP() {
-    COUT<< "SocketTCP destroyed... \n";
-}
+*/
 
 /***************** Derived Class SocketUDP *****************/
 
@@ -316,10 +192,9 @@ SocketUDP::SocketUDP(bool mode, char* ip): Socket(mode){
     socket_id_rx = s_rx;
 
     COUT << "Socket UDP created\n";
-
 }
 
-bool SocketUDP::read_non_blocking(char* buff, int len, int timeout, int *timeout_info){
+bool SocketUDP::read_non_blocking(byte* buff, int len, int timeout, int *timeout_info){
     struct pollfd fds; // Polling system for timeouts
     unsigned int slen=sizeof(si_other_rx_);
     fds.fd = socket_id_rx;
@@ -327,7 +202,6 @@ bool SocketUDP::read_non_blocking(char* buff, int len, int timeout, int *timeout
     
     *timeout_info = poll(&fds, 1, timeout);
     //COUT<< "Timeout info: " << *timeout_info << "\n";
-    int n = -2;
     switch(*timeout_info) {
         case -1:
             //COUT<< "Error Poll \n";
@@ -342,21 +216,19 @@ bool SocketUDP::read_non_blocking(char* buff, int len, int timeout, int *timeout
     return 0;
 }
 
-bool SocketUDP::read_blocking(char* buff, int len){
+bool SocketUDP::read_blocking(byte* buff, int len){
     unsigned int slen=sizeof(si_other_rx_);
     COUT<< "Read blocking...\n";
     return recvfrom (socket_id_rx, buff, len, 0, (sockaddr*)&si_other_rx_, &slen);
 }
 
-bool SocketUDP::write_socket(const char* buff, int len, int mode){
+bool SocketUDP::write_socket(const byte* buff, int len, int mode){
     unsigned int slen=sizeof(si_other_tx_);
-    //COUT<< "Write to socket " <<  socket_id_tx << "\n";
     int n = sendto(socket_id_tx, buff, len, 0, (sockaddr*)&si_other_tx_, slen);
     if (n < 0){
         COUT<< "Error writing to socket\n";
         return 0;
     }
-    //COUT<< "Written ...\n";
     
     return 1;
 }

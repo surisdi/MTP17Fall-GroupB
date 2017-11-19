@@ -11,7 +11,7 @@ class Compressor {
 protected:
 	int compressionRate;
 	FILE *outputFile;
-	unsigned char dataUncompressed[utils::CHUNK_SIZE];
+	byte dataUncompressed[utils::CHUNK_SIZE];
 	unsigned long sizeDataUncompressed;
 
 public:
@@ -25,7 +25,7 @@ public:
 	// Compression ratio 0-9 (9 maximum compression)
 	Compressor(int compRate);
 
-	virtual Chunk * compressFile(char *input, int *num_chunks) = 0;
+	virtual Chunk * compressFile(const char *input, int *num_chunks) = 0;
 
 	virtual int startDecompress(const char *file_name) = 0;
 
@@ -43,7 +43,7 @@ class Compressor1: public Compressor {
 public:
 	Compressor1(int compRate);
 
-	virtual Chunk * compressFile(char *input, int *num_chunks) override;
+	virtual Chunk * compressFile(const char *input, int *num_chunks) override;
 
 	virtual int startDecompress(const char *file_name) override;
 

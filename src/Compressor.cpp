@@ -23,10 +23,10 @@ Compressor(cmpRate)
 	COUT<< "Compressor1 created\n";
 }
 
-Chunk * Compressor1::compressFile(char *file_name, int *num_chunks)
+Chunk * Compressor1::compressFile(const char *file_name, int *num_chunks)
 {
 	int len;
-	unsigned char *buffer = (unsigned char *)utils::read_text(file_name, &len);
+	byte *buffer = (byte *)utils::read_text(file_name, &len);
 	int extra = ((len % utils::CHUNK_SIZE) != 0);
 
 	n_chunks = len / utils::CHUNK_SIZE + extra;
@@ -36,7 +36,7 @@ Chunk * Compressor1::compressFile(char *file_name, int *num_chunks)
 	for(int i = 0; i < n_chunks-1; i++) {
 		unsigned long *size = (unsigned long*)malloc(sizeof(long));
 		*size = utils::sizeCompressed;
-		unsigned char *dataCompressed = (unsigned char*)malloc(sizeof(char)*utils::sizeCompressed);
+		byte *dataCompressed = (byte*)malloc(sizeof(byte)*utils::sizeCompressed);
 		compress2(dataCompressed, size, &buffer[counter], utils::CHUNK_SIZE, compressionRate);
 		counter += utils::CHUNK_SIZE;
 
@@ -45,21 +45,24 @@ Chunk * Compressor1::compressFile(char *file_name, int *num_chunks)
 		numbytes += *size;
 	}
 
+	// Compress last chunk
 	int last_chunk = len-counter;
 	unsigned long *size = (unsigned long*)malloc(sizeof(long));
 	*size = utils::sizeCompressed;
-	unsigned char *dataCompressed = (unsigned char*)malloc(utils::sizeCompressed);
+	byte *dataCompressed = (byte*)malloc(utils::sizeCompressed);
 	int z_result = compress2(dataCompressed, size, &buffer[counter], last_chunk, compressionRate);
 
+	// Reallocate two bytes to save chunk size
 	*size = (*size) + 2;
-	unsigned char *dataExtended = (unsigned char *)realloc(dataCompressed, *size); //Reallocate two bytes to save chunk size
+	byte *dataExtended = (byte*)realloc(dataCompressed, *size);
 	if(dataExtended == NULL){
 		COUT << "ERROR REALLOCATING";
 		exit(0);
 	}
 
-	char byte1 = last_chunk & 0x000000ff;
-	char byte2 = (last_chunk & 0x0000ff00) >> 8;
+	//Parse the last chunk size
+	byte byte1 = last_chunk & 0x000000ff;
+	byte byte2 = (last_chunk & 0x0000ff00) >> 8;
 	dataExtended[(*size) - 2] = byte2;
 	dataExtended[(*size) - 1] = byte1;
 
@@ -67,11 +70,10 @@ Chunk * Compressor1::compressFile(char *file_name, int *num_chunks)
 	listChunk[n_chunks-1].len = size;
 	numbytes += *size;
 
-	std::cout << "Size Original file: " << len << "\n";
-	std::cout << "Size compressed file: " << numbytes << "\n";
-	std::cout << "Number of chunks: " << n_chunks << "\n";
-
 	*num_chunks = n_chunks;
+
+	COUT << "Size Original file: " << len << "\n";
+	COUT << "Size compressed file: " << numbytes << "\n";
 
 	if(z_result >= 0)
 		return listChunk;
@@ -90,6 +92,8 @@ int Compressor1::decompressChunk(Chunk *input, int chunk_size)
 	sizeDataUncompressed = chunk_size;
 	int z_result = uncompress(dataUncompressed, &sizeDataUncompressed, input->data, *(input->len));
 
+	utils::printPacket(input->data, *(input->len), 2);
+
 	if(z_result >= 0) {
 		int ret = fwrite(dataUncompressed, sizeof(char), sizeDataUncompressed, outputFile);
 		return ret;
@@ -106,7 +110,8 @@ int Compressor1::closeDecompress()
 	return check;
 }
 
-Compressor1::~Compressor1() {
+Compressor1::~Compressor1()
+{
 	for(int i = 0; i < n_chunks; i++) {
 		free(listChunk[i].data);
 		free(listChunk[i].len);

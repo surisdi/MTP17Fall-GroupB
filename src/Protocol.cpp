@@ -15,15 +15,14 @@
 Protocol::Protocol(Compressor *comp, Encoder *enc, Socket *sck):
 compressor(comp),
 encoder(enc),
-socket(sck) {
-    finished_protocol = false;
-}
+socket(sck),
+finished_protocol(false),
+timer_running(false){}
 
-int Protocol::isAck(const char* r_ack) {
+int Protocol::isAck(const byte* r_ack) {
         //std::bitset<sizeof(char)> bs(r_ack);
     //Forgive me god, for i have sinned
 	int n_ones = 0;
-	int n_zeros = 0;
 
     //std::bitset<8> x(*r_ack);
     //COUT<< "ack packet: " << x << "\n";
@@ -42,8 +41,6 @@ int Protocol::isAck(const char* r_ack) {
 		return -1;
 	}
 }
-
-int Protocol::createPacket(char *){}
 
 Protocol::~Protocol() {}
 
