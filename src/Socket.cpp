@@ -31,7 +31,7 @@ socket_id(0){}
 Socket::~Socket(){}
 
 /***************** Derived Class Socketradio *****************/
-/*
+
 SocketRadio::SocketRadio(bool mode): Socket(mode){
     // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz
     radio_sender = new RF24(25, 0);
@@ -142,7 +142,7 @@ bool SocketRadio::write_socket(const byte *buff, int len, int mode){
 
 
 SocketRadio::~SocketRadio() {}
-*/
+
 
 /***************** Derived Class SocketUDP *****************/
 

@@ -15,7 +15,7 @@
 #include <cstring>
 
 
-//#include "RF24/RF24.h"
+#include "RF24/RF24.h"
 #include <mutex>
 
 typedef unsigned char byte;
@@ -66,8 +66,8 @@ private:
 class SocketRadio: public Socket {
 
 private:
-    //RF24* radio_sender;
-    //RF24* radio_ack;
+    RF24* radio_sender;
+    RF24* radio_ack;
     std::mutex mtx_radio;
 public:
     SocketRadio(bool mode);
