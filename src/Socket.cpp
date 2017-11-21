@@ -84,7 +84,7 @@ bool SocketRadio::read_blocking(byte *buff, int len){
 		mtx_radio.unlock();
      	// sleep
     }
-    COUT<< "Is available\n\n";
+    //COUT<< "Is available\n\n";
 
     mtx_radio.lock();
 	radio_sender->read(buff, len); // Per aqui pot fallar

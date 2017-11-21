@@ -75,7 +75,7 @@ int StopWait::receive_text() {
     compressor->startDecompress("output.txt");
     Chunk chunk;
     unsigned long buffSize;
-
+    unsigned long timer;
     unsigned int chunkSize = 0;
     byte dataSize = 0, flags = 0, previous = 0;
 
@@ -89,11 +89,14 @@ int StopWait::receive_text() {
     bool rnext=0;
     std::vector<byte> buff;
     buff.reserve(sizeof(char)*utils::CHUNK_SIZE);
-
+    bool ha_entrat = false;
     while (!get_out) {
         
         socket->read_blocking(packet, utils::CODE_L);
-
+        if(!ha_entrat){
+	  timer = millis();
+	  ha_entrat = true;
+	}
         COUT << "*** Received packet " << counter << " *** \n";
         //utils::printPacket(packet, utils::CODE_L, 2);
 
@@ -134,6 +137,7 @@ int StopWait::receive_text() {
     }
 
     int ret = compressor->closeDecompress();
+    std::cout << (millis()-timer) << "\n";
     if (ret) {
         COUT << "Error writing the file";
         return 0;
@@ -241,7 +245,7 @@ int StopWait::send_text(char *text) {
         encoder->encode(message, packet); //use the encoder to encode the information
 
     	COUT<< "*** Sending packet number " << i << " *** \n";;
-    	utils::printPacket(packet, utils::CODE_L, 2);
+    	//utils::printPacket(packet, utils::CODE_L, 2);
 
     	socket->write_socket(packet, utils::CODE_L, 0);
 

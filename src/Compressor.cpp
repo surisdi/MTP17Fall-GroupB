@@ -92,7 +92,7 @@ int Compressor1::decompressChunk(Chunk *input, int chunk_size)
 	sizeDataUncompressed = chunk_size;
 	int z_result = uncompress(dataUncompressed, &sizeDataUncompressed, input->data, *(input->len));
 
-	utils::printPacket(input->data, *(input->len), 2);
+	//utils::printPacket(input->data, *(input->len), 2);
 
 	if(z_result >= 0) {
 		int ret = fwrite(dataUncompressed, sizeof(char), sizeDataUncompressed, outputFile);
