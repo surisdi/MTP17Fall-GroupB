@@ -35,7 +35,7 @@ Socket::~Socket(){}
 SocketRadio::SocketRadio(bool mode): Socket(mode){
     // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz
     radio_sender = new RF24(25, 0);
-    radio_ack = new RF24(24, 1);
+    radio_ack = new RF24(23, 1);
 
     // radio_sender pipe addresses for the 2 nodes to communicate.
     const uint64_t addresses[2] = {0xABCDABCD71LL, 0x544d52687CLL};
