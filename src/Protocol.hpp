@@ -7,6 +7,9 @@
 #include "Socket.hpp"
 #include "Encoder.hpp"
 
+#include <mutex>
+#include <sys/time.h>
+
 /***************** Base Class Protocol *****************/
 
 class Protocol {
@@ -16,9 +19,13 @@ protected:
     Encoder *encoder;
     Socket *socket;
     
-    int isAck(const char* r_ack);
-    
-    int createPacket(char *);
+    int isAck(const byte* r_ack);
+
+    std::mutex mtx;
+
+    bool finished_protocol;
+    struct timespec clock_start, clock_now; 
+    bool timer_running;
 
 public:
     Protocol(Compressor *, Encoder *, Socket *);
@@ -42,6 +49,42 @@ public:
     virtual int receive_text() override;
 
     virtual ~StopWait();
+
+private:
+    void receiveThread();
+
+    virtual void createMessage(byte *message, byte *buffer, int i, int len, bool isLast, bool flagSW);
+
+    virtual bool parseMessage(byte *message, byte flags, byte previous, unsigned int *chunkSize, byte *dataSize, bool *lastPacket, bool *correctID, int rnext);
+
+    int flag_ack; // 1 ACK, 0 NOTHING RECEIVED, -1 NACK
+    int flag_pac_num;
+};
+
+
+/***************** Derived Class Go Back N *****************/
+
+class GoBackN: public Protocol {
+public:
+    GoBackN(Compressor *comp, Encoder *enc, Socket *sck);
+    virtual int send_text(char *text) override;
+
+    virtual int receive_text() override;
+
+    virtual ~GoBackN();
+
+private:
+
+    void receiveThread();
+
+    bool timeoutExpired();
+
+    void createMessage(byte *message, byte *buffer, int i, int len, bool isLast);
+
+    bool parseMessage(byte *message, byte flags, byte previous, unsigned int *chunkSize, byte *dataSize, bool *lastPacket);
+
+    int id_base; // Expected packet to be acknowledged
+    int id_send; // Next packet to be sent
 };
 
 

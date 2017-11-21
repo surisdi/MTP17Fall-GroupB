@@ -6,6 +6,7 @@
 #include <string>
 #include <unistd.h>
 #include <cstddef>
+#include <cstring>
 
 #include "schifra/schifra_galois_field.hpp"
 #include "schifra/schifra_galois_field_polynomial.hpp"
@@ -25,9 +26,9 @@ class Encoder {
 public:
     Encoder(){}
     
-    virtual bool encode(const char *input, char *output) = 0;
+    virtual bool encode(const byte *input, byte *output) = 0;
     
-    virtual bool decode(const char *input, char *output) = 0;
+    virtual bool decode(const byte *input, byte *output) = 0;
     
     virtual ~Encoder(){}
 };
@@ -51,49 +52,52 @@ public:
                                                                 *generator_polynomial)
         )
         {
-            std::cout << "Error - Failed to create sequential root generator!" << std::endl;
+            COUT<< "Error - Failed to create sequential root generator!\n";
         }
         
         encoder = new encoder_t(*field, *generator_polynomial);
         decoder = new decoder_t(*field, generator_polynomial_index);
         
         corrected.resize(data_length, 0x00);
+
+        COUT << "EncoderRS created\n";
     }
     
-    inline bool encode(const char *input, char *output) {
-        spacket.assign(input, code_length);
+    inline bool encode(const byte *input, byte *output) {
+        spacket.assign((const char *)input, code_length);
         encoder->encode(spacket, block);
 
-        for (int k=0; k < code_length; k++) {
+        for (unsigned int k=0; k < code_length; k++) {
             output[k] = block[k];
         }
+
         return 0;
     }
     
-    inline bool decode(const char *input, char *output) {
+    inline bool decode(const byte *input, byte *output) {
         int error = 0;
         
-        spacket.assign(input, code_length);
+        spacket.assign((const char *)input, code_length);
         data = spacket.substr(0, data_length);
         fec = spacket.substr(data_length, fec_length);
         
         block = schifra::reed_solomon::block<code_length,fec_length>(data, fec);
         
         if(!decoder->decode(block)) {
-            std::cout << "Error - Critical decoding failure! "
-            << "Msg: " << block.error_as_string() << std::endl;
+            COUT<< "Error - Critical decoding failure! "
+            << "Msg: " << block.error_as_string() << "\n";
             error = 1;
             
         } else{
             block.data_to_string(corrected);
-	    memcpy (output, (char *) corrected.c_str(), code_length);
+            memcpy(output, (byte *) corrected.c_str(), code_length);
         }
         
         return error;
     }
     
     inline ~EncoderRS() {
-        std::cout << "EncodeRS destroyed..." << std::endl;
+        COUT<< "EncodeRS destroyed...\n";
     }
     
 private:

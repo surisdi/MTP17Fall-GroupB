@@ -10,25 +10,22 @@
 #include "utils.hpp"
 
 using namespace std;
-
+using namespace utils;
 
 int main(int argc, char* argv[])
 {
-    const int CODE_L = 32;
-    const int REDUNDANCY = 2;
-
     if(argc < 2){
         cout << "Please provide arguments " << endl;
         return -1;
     }
     
-    //TODO: Aixo no fa res, s'ha d'eliminar, només es una clase de prints
-    Compressor1 compressor(0.5, 5);
+    Compressor1 compressor(COMPRESSION_RATIO);
     EncoderRS<CODE_L, REDUNDANCY> encoder;
-    
+
     if(string(argv[1]) == "tx") {
         
-        SocketRadio socket(1);
+        //SocketRadio socket(1);
+        SocketUDP socket(1,(char *)"localhost");
         StopWait protocol(&compressor, &encoder, &socket);
         
         char* file_name;
@@ -39,16 +36,17 @@ int main(int argc, char* argv[])
             file_name = (char *)"file.txt";
         }
         
-        std::cout << "Input file name: " << file_name << std::endl;
+        cout << "Input file name: " << file_name << endl;
         
-        int sent_ok = protocol.send_text(file_name);
+        protocol.send_text(file_name);
         
     } else {
         
-        SocketRadio socket(0);
+        //SocketRadio socket(0);
+        SocketUDP socket(0,(char *)"localhost");
         StopWait protocol(&compressor, &encoder, &socket);
         
-        int received_ok = protocol.receive_text();
+        protocol.receive_text();
     }
     
     return 0;

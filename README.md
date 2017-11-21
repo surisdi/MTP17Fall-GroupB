@@ -55,7 +55,7 @@ We apply the changes with
 ```
 $ sudo ldconfig
 ```
-Then we have to install RF24:
+Finally, we have to install RF24:
 ```
 $ cd ~/
 $ git clone https://github.com/nRF24/RF24.git
@@ -63,18 +63,13 @@ $ cd RF24/
 $ ./configure --driver=MRAA
 $ sudo make install -B
 ```
-Finally, we have to install zlib:
-```
-$ sudo apt-get install zlib1g-dev 
-```
-
 And we're done!
 
 ## Compiling code
 
 To compile including this library, with your file.cpp in the same folder as the RF24 folder:
 ```
-$ g++ -Wall -L RF24/ -lrf24 -lz file.cpp -o output
+$ g++ -Wall -L RF24/ -lrf24 file.cpp -o output
 ```
 Remember that all RF24 code needs to be run as root:
 ```
