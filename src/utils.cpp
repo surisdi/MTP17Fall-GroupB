@@ -5,6 +5,14 @@
 #include <cstdlib> // for the random
 #include <iostream>
 #include <bitset>
+#include <bcm2835.h>
+
+// Pin Constants
+#define GREEN_LED RPI_BPLUS_GPIO_J8_35 
+#define RED_LED RPI_BPLUS_GPIO_J8_37
+#define TXRX_PORT RPI_BPLUS_GPIO_J8_8
+#define START_PORT RPI_BPLUS_GPIO_J8_10
+#define NET_PORT RPI_BPLUS_GPIO_J8_12
 
 namespace utils{
     
@@ -38,27 +46,6 @@ namespace utils{
             }
         }*/
     }
-    
-    void printBits(size_t const size, void const * const ptr){}
-    //void printPacket(const byte *buffer, const int len, const int format) {}
-
-    /*
-    void printBits(size_t const size, void const * const ptr){
-        unsigned char *b = (unsigned char*) ptr;
-        unsigned char byte;
-        int i, j;
-
-        for (i=size-1;i>=0;i--)
-        {
-            for (j=7;j>=0;j--)
-            {
-                byte = (b[i] >> j) & 1;
-                printf("%u", byte);
-            }
-        }
-        puts("");
-    }*/
-
 
     void printPacket(const byte *buffer, const int len, const int format) {
         // format: 0 char, 1 hex, 2 decimal
@@ -95,5 +82,44 @@ namespace utils{
         *mylen = len;
         
         return buffer;
+    }
+
+    bool setupGPIO(){
+        if (!bcm2835_init())
+            return 0;
+        // Configure LEDs as output
+        bcm2835_gpio_fsel(RED_LED, BCM2835_GPIO_FSEL_OUTP);
+        bcm2835_gpio_fsel(GREEN_LED, BCM2835_GPIO_FSEL_OUTP);
+        // Configure Tx Rx Switch as input and pullup
+        bcm2835_gpio_fsel(TXRX_PORT, BCM2835_GPIO_FSEL_INPT);
+        bcm2835_gpio_set_pud(TXRX_PORT, BCM2835_GPIO_PUD_UP);
+        // Configure Network Switch as input and pullup
+        bcm2835_gpio_fsel(NET_PORT, BCM2835_GPIO_FSEL_INPT);
+        bcm2835_gpio_set_pud(NET_PORT, BCM2835_GPIO_PUD_UP);
+        return 1;
+    }
+
+    bool destroyGPIO(){
+        return bcm2835_close();
+    }
+
+    uint8_t readTxRx(){
+        return bcm2835_gpio_lev(TXRX_PORT);
+    }
+
+    uint8_t readNetworkMode(){
+        return bcm2835_gpio_lev(NET_PORT);
+    }
+
+    void blinkRed(){
+        bcm2835_gpio_write(RED_LED, HIGH);
+        bcm2835_delay(100);
+        bcm2835_gpio_write(RED_LED, LOW);
+    }
+
+    void blinkGreen(){
+        bcm2835_gpio_write(GREEN_LED, HIGH);
+        bcm2835_delay(100);
+        bcm2835_gpio_write(GREEN_LED, LOW);
     }
 }
