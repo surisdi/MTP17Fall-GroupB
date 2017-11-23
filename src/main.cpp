@@ -15,17 +15,15 @@ using namespace utils;
 int main(int argc, char* argv[])
 {
     utils::setupGPIO();
-    if(argc < 2){
+    /*if(argc < 2){
         cout << "Please provide arguments " << endl;
         return -1;
-    }
+    }*/
     
     Compressor1 compressor(COMPRESSION_RATIO);
     EncoderRS<CODE_L, REDUNDANCY> encoder;
 
-    int txrx = utils::readTxRx();
-    std::cout << txrx << std::endl;
-    if(string(argv[1]) == "tx") {
+    if(utils::readTxRx()) {
         
         SocketRadio socket(1);
         //SocketUDP socket(1,(char *)"localhost");
