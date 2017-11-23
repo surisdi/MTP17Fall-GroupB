@@ -86,7 +86,9 @@ int StopWait::receive_text() {
     byte ack_flags = 0x00;
 
     bool error;
+    int z_result;
     
+    bool chunkError = false;
     bool rnext=0;
     std::vector<byte> buff;
     buff.reserve(sizeof(char)*utils::CHUNK_SIZE);
@@ -109,33 +111,40 @@ int StopWait::receive_text() {
             //socket->write_socket(&utils::nack, 1, 1);
         }else{
             COUT << "Corrected packet:  \n";
-	    flags = corrected[utils::PAYLOAD_L];
-       	    get_out = parseMessage(corrected, flags, previous, &chunkSize, &dataSize, &lastPacket, &correctID, rnext);
-	    
-            if (correctID){
-		COUT << "CorrectID\n";
-            	//utils::printPacket(corrected, utils::PAYLOAD_L, 2);
-	    	rnext = 1-rnext;	    
-	    	counter++;
+            flags = corrected[utils::PAYLOAD_L];
+            get_out = parseMessage(corrected, flags, previous, &chunkSize, &dataSize, &lastPacket, &correctID, rnext);
 
-           	buff.insert(buff.end(), corrected, corrected + dataSize);
+            if (correctID){
+                COUT << "CorrectID\n";
+                chunkError = false;
+            	//utils::printPacket(corrected, utils::PAYLOAD_L, 2);
+                rnext = 1-rnext;	    
+                counter++;
+
+            	buff.insert(buff.end(), corrected, corrected + dataSize);
             	if(lastPacket) {
                	    chunk.data = &buff[0];
                     buffSize = buff.size();
                     chunk.len = (unsigned long *)&buffSize;
-                    int z_result = compressor->decompressChunk(&chunk,  chunkSize);
-                    utils::blinkGreen();
+                    z_result = compressor->decompressChunk(&chunk,  chunkSize);
                     buff.clear();
+                    if (z_result < 0) {
+                        chunkError = true;
+                        COUT << "CHUNK ERROR!!!!!!\n";
+                    } else {
+                        utils::blinkGreen();    
+                    }
              	} else {
                     previous = corrected[dataSize - 1];
                 }
-	    }
-	 }
-	 // Send ack 
-         ack_flags = utils::ack_sw | rnext;
-         std::bitset<8> x(ack_flags);
-         COUT<< "ack_flags: " << x << "\n";
-         socket->write_socket(&ack_flags, 1, 1);
+            }
+        }
+        // Send ack 
+        ack_flags = utils::ack_sw | rnext;
+        ack_flags = utils::ack_sw | (chunkError << 1);
+        std::bitset<8> x(ack_flags);
+        COUT<< "ack_flags: " << x << "\n";
+        socket->write_socket(&ack_flags, 1, 1);
     }
 
     int ret = compressor->closeDecompress();
@@ -157,7 +166,7 @@ void StopWait::createMessage(byte *message, byte *buffer, int i, int len, bool i
 
     if ( (i + 1) * utils::PAYLOAD_L >= len ) {
         pay_len = len - ( i * utils::PAYLOAD_L );
-	flagOut = true;
+	    flagOut = true;
     } else {
         pay_len = utils::PAYLOAD_L;
     }
@@ -219,6 +228,7 @@ int StopWait::send_text(char *text) {
     bool finished_p = false;
     int ret, isack;
     int timeout_receive=50;
+    bool chunkError = false;
 
     // Initiate thread receive
     //std::thread thread_receive(&StopWait::receiveThread, this);
@@ -265,13 +275,21 @@ int StopWait::send_text(char *text) {
         }else{
             isack = isAck(p_packet_ack);
             pac_num = ((*p_packet_ack) & 0x01);
-	    if (isack && pac_num==1-slast){
-		slast=1-slast;
-		i++;
-		COUT << "ACK received with packet ID" << pac_num << "\n";
+            chunkError = ((*p_packet_ack) & 0x02) >> 1;
+
+            if (isack && pac_num==1-slast){
+                slast=1-slast;
+                i++;
+
+                if (chunkError) {
+                    currChunk--;
+                    COUT << "CHUNK ERROR!!!! \n";
+                }else{
+                    COUT << "ACK received with packet ID" << pac_num << "\n";
+                }
             }else{
-		COUT << "Wrong ack received\n";
-	    }
+                COUT << "Wrong ack received\n";
+            }
         }
     }
     COUT<< "Finished transmitting!\n";

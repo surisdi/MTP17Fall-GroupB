@@ -27,7 +27,7 @@ int Protocol::isAck(const byte* r_ack) {
     //std::bitset<8> x(*r_ack);
     //COUT<< "ack packet: " << x << "\n";
     // The 5 lowest bits are for flags (FOR PACKET ID)
-	for (int k = 5; k < 8; k++) {
+	for (int k = 2; k < 8; k++) {
 		if(((*r_ack) & (0x01 << k)) != 0) {
 			n_ones++;
 		}
