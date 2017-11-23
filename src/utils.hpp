@@ -5,7 +5,7 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <stdint>
+#include <cstdint>
 
 // Pin Constants
 #define GREEN_LED RPI_BPLUS_GPIO_J8_35 
