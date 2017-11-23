@@ -14,6 +14,7 @@ using namespace std;
 using namespace utils;
 
 void termination_handler(int signal){
+    utils::destroyGPIO();
 	exit(1);
 }
 

@@ -93,6 +93,8 @@ namespace utils{
     }
 
     bool destroyGPIO(){
+        bcm2835_gpio_write(GREEN_LED, LOW);
+        bcm2835_gpio_write(RED_LED, LOW);
         return bcm2835_close();
     }
 
