@@ -6,6 +6,13 @@
 #include <cstdio>
 #include <cstdlib>
 
+// Pin Constants
+#define GREEN_LED RPI_BPLUS_GPIO_J8_35 
+#define RED_LED RPI_BPLUS_GPIO_J8_37
+#define TXRX_PORT RPI_BPLUS_GPIO_J8_8
+#define START_PORT RPI_BPLUS_GPIO_J8_10
+#define NET_PORT RPI_BPLUS_GPIO_J8_12
+
 class NullStream {
     public:
     NullStream() { }

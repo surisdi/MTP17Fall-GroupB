@@ -7,13 +7,6 @@
 #include <bitset>
 #include <bcm2835.h>
 
-// Pin Constants
-#define GREEN_LED RPI_BPLUS_GPIO_J8_35 
-#define RED_LED RPI_BPLUS_GPIO_J8_37
-#define TXRX_PORT RPI_BPLUS_GPIO_J8_8
-#define START_PORT RPI_BPLUS_GPIO_J8_10
-#define NET_PORT RPI_BPLUS_GPIO_J8_12
-
 namespace utils{
     
     extern const byte ack_sw = 0xFC;
