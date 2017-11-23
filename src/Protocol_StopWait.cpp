@@ -68,6 +68,7 @@ bool StopWait::parseMessage(byte *message, byte flags, byte previous, unsigned i
 int StopWait::receive_text() {
 
     COUT<< "Receiving text...\n";
+    utils::stayRed();
 	
     byte packet[utils::CODE_L];
     byte corrected[utils::CODE_L];
@@ -94,9 +95,10 @@ int StopWait::receive_text() {
         
         socket->read_blocking(packet, utils::CODE_L);
         if(!ha_entrat){
-	  timer = millis();
-	  ha_entrat = true;
-	}
+            utils::stopRed();
+	        timer = millis();
+	        ha_entrat = true;
+	    }
         COUT << "*** Received packet " << counter << " *** \n";
         //utils::printPacket(packet, utils::CODE_L, 2);
 

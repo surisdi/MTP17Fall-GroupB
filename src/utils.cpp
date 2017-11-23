@@ -120,4 +120,10 @@ namespace utils{
     void stayGreen(){
         bcm2835_gpio_write(GREEN_LED, HIGH);
     }
+    void stayRed(){
+        bcm2835_gpio_write(RED_LED, HIGH);
+    }
+    void stopRed(){
+        bcm2835_gpio_write(RED_LED, LOW);
+    }
 }

@@ -72,6 +72,8 @@ namespace utils{
     void blinkRed();
     void stayGreen();
     void blinkGreen();
+    void stayRed();
+    void stopRed();
 }
 
 #endif
