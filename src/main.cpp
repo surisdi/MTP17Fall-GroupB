@@ -13,7 +13,7 @@
 using namespace std;
 using namespace utils;
 
-void termination_handler(){
+void termination_handler(int signal){
 	exit(1);
 }
 
