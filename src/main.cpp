@@ -30,8 +30,8 @@ int main(int argc, char* argv[])
         StopWait protocol(&compressor, &encoder, &socket);
         
         char* file_name;
-        if(argc > 2){
-            file_name = argv[2];
+        if(argc > 1){
+            file_name = argv[1];
         }
         else{
             file_name = (char *)"file.txt";

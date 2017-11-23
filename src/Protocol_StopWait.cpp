@@ -122,6 +122,7 @@ int StopWait::receive_text() {
                     buffSize = buff.size();
                     chunk.len = (unsigned long *)&buffSize;
                     int z_result = compressor->decompressChunk(&chunk,  chunkSize);
+                    utils::blinkGreen();
                     buff.clear();
              	} else {
                     previous = corrected[dataSize - 1];
@@ -133,8 +134,6 @@ int StopWait::receive_text() {
          std::bitset<8> x(ack_flags);
          COUT<< "ack_flags: " << x << "\n";
          socket->write_socket(&ack_flags, 1, 1);
-         utils::blinkGreen();
-   
     }
 
     int ret = compressor->closeDecompress();
