@@ -13,9 +13,10 @@
 using namespace std;
 using namespace utils;
 
-void termination_handler(int signum){
+void termination_handler(){
 	exit(1);
 }
+
 int main(int argc, char* argv[])
 {
 	signal(SIGTERM,termination_handler);
