@@ -14,6 +14,7 @@ using namespace utils;
 
 int main(int argc, char* argv[])
 {
+    utils::setupGPIO();
     if(argc < 2){
         cout << "Please provide arguments " << endl;
         return -1;
@@ -48,6 +49,6 @@ int main(int argc, char* argv[])
         
         protocol.receive_text();
     }
-    
+    utils::destroyGPIO();
     return 0;
 }
