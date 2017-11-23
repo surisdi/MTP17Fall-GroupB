@@ -133,6 +133,7 @@ int StopWait::receive_text() {
          std::bitset<8> x(ack_flags);
          COUT<< "ack_flags: " << x << "\n";
          socket->write_socket(&ack_flags, 1, 1);
+         utils::blinkGreen();
    
     }
 
@@ -142,6 +143,7 @@ int StopWait::receive_text() {
         COUT << "Error writing the file";
         return 0;
     } else {
+        utils::stayGreen();
         return 1;
     }
 
@@ -272,6 +274,7 @@ int StopWait::send_text(char *text) {
         }
     }
     COUT<< "Finished transmitting!\n";
+    utils::stayGreen();
     return 0;
 }
 

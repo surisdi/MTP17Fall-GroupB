@@ -115,4 +115,7 @@ namespace utils{
         bcm2835_delay(10);
         bcm2835_gpio_write(GREEN_LED, LOW);
     }
+    void stayGreen(){
+        bcm2835_gpio_write(GREEN_LED, HIGH);
+    }
 }

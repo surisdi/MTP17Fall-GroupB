@@ -70,6 +70,7 @@ namespace utils{
     uint8_t readTxRx();
     uint8_t readNetworkMode();
     void blinkRed();
+    void stayGreen();
     void blinkGreen();
 }
 
