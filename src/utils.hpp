@@ -8,6 +8,13 @@
 #include <cstdint>
 #include <bcm2835.h>
 
+// Pin Constants
+#define GREEN_LED RPI_BPLUS_GPIO_J8_35 
+#define RED_LED RPI_BPLUS_GPIO_J8_37
+#define TXRX_PORT RPI_BPLUS_GPIO_J8_08
+#define START_PORT RPI_BPLUS_GPIO_J8_10
+#define NET_PORT RPI_BPLUS_GPIO_J8_12
+
 class NullStream {
     public:
     NullStream() { }
@@ -25,13 +32,8 @@ struct Chunk {
 typedef unsigned char byte;
 
 namespace utils{
-    // Pin Constants
-    #define GREEN_LED RPI_BPLUS_GPIO_J8_35 
-    #define RED_LED RPI_BPLUS_GPIO_J8_37
-    #define TXRX_PORT RPI_BPLUS_GPIO_J8_8
-    #define START_PORT RPI_BPLUS_GPIO_J8_10
-    #define NET_PORT RPI_BPLUS_GPIO_J8_12
-    
+
+
     // Protocol constants
 	constexpr int CODE_L = 32;
 	constexpr int REDUNDANCY = 2;
