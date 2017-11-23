@@ -33,12 +33,10 @@ int Protocol::isAck(const byte* r_ack) {
 		}
 	}
 
-	if (n_ones > 1) {
+	if (n_ones == 6) {
 		return 1;
-	}else if(n_ones < 2) {
+	}else{
 		return 0;
-	} else {
-		return -1;
 	}
 }
 
