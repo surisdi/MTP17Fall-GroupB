@@ -6,15 +6,20 @@
 #include "Encoder.hpp"
 #include "Compressor.hpp"
 #include "Socket.hpp"
+#include <csignal>
 
 #include "utils.hpp"
 
 using namespace std;
 using namespace utils;
 
+void termination_handler(int signum){
+	exit(1);
+}
 int main(int argc, char* argv[])
 {
-    utils::setupGPIO();
+	signal(SIGTERM,termination_handler);
+	utils::setupGPIO();
     /*if(argc < 2){
         cout << "Please provide arguments " << endl;
         return -1;
