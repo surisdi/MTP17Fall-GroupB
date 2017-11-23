@@ -36,7 +36,8 @@ SocketRadio::SocketRadio(bool mode): Socket(mode){
     // Setup for GPIO 15 CE and CE0 CSN with SPI Speed @ 8Mhz
     radio_sender = new RF24(25, 0);
     radio_ack = new RF24(23, 1);
-
+    std::cout << "Txrx switch state: " << utils::readTxRx() << std::endl;
+    std::cout << "Network switch state: " << utils::readNetworkMode() << std::endl;
     // radio_sender pipe addresses for the 2 nodes to communicate.
     const uint64_t addresses[2] = {0xABCDABCD71LL, 0x544d52687CLL};
     //const uint64_t addresses[4] = { 0xABCDABCD71LL, 0xBACDBACD71LL, 0x533d52687CLL, 0x544d52687CLL};
