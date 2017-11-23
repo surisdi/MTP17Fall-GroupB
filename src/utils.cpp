@@ -113,13 +113,13 @@ namespace utils{
 
     void blinkRed(){
         bcm2835_gpio_write(RED_LED, HIGH);
-        bcm2835_delay(100);
+        bcm2835_delay(10);
         bcm2835_gpio_write(RED_LED, LOW);
     }
 
     void blinkGreen(){
         bcm2835_gpio_write(GREEN_LED, HIGH);
-        bcm2835_delay(100);
+        bcm2835_delay(10);
         bcm2835_gpio_write(GREEN_LED, LOW);
     }
 }

@@ -43,9 +43,14 @@ SocketRadio::SocketRadio(bool mode): Socket(mode){
 
     // Setup the spec the radio for the data tx
     radio_sender->begin();
-    radio_sender->setChannel(90);
-    radio_sender->setPALevel(RF24_PA_MIN);
-    radio_sender->setDataRate(RF24_1MBPS);
+    radio_sender->setChannel(97);
+    if(!mode){
+        // If mode is false, we are in Tx
+        radio_sender->setPALevel(RF24_PA_MAX);
+    }else{
+        radio_sender->setPALevel(RF24_PA_MIN);
+    }
+    radio_sender->setDataRate(RF24_250KBPS);
     radio_sender->setAutoAck(0);
     //radio_sender->setRetries(2,15);
     radio_sender->setCRCLength(RF24_CRC_8);
@@ -54,8 +59,13 @@ SocketRadio::SocketRadio(bool mode): Socket(mode){
     // Setup the spec the radio for the ack tx
     radio_ack->begin();
     radio_ack->setChannel(99);
-    radio_ack->setPALevel(RF24_PA_MIN);
-    radio_ack->setDataRate(RF24_1MBPS);
+    if(!mode){
+        // If mode is false, we are in Tx
+        radio_ack->setPALevel(RF24_PA_MIN);
+    }else{
+        radio_ack->setPALevel(RF24_PA_MAX);
+    }
+    radio_ack->setDataRate(RF24_250KBPS);
     //radio_ack->maskIRQ(1,1,0);
     radio_ack->setAutoAck(0);
     //radio_sender->setRetries(2,15);

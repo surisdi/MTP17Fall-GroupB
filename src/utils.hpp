@@ -53,7 +53,13 @@ namespace utils{
 
     void printBits(size_t const size, void const * const ptr);
 
-    // void open_led ...
+    // GPIO Functions
+    bool setupGPIO();
+    bool destroyGPIO();
+    uint8_t readTxRx();
+    uint8_t readNetworkMode();
+    void blinkRed();
+    void blinkGreen();
 }
 
 #endif
