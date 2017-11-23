@@ -83,6 +83,8 @@ namespace utils{
         // Configure LEDs as output
         bcm2835_gpio_fsel(RED_LED, BCM2835_GPIO_FSEL_OUTP);
         bcm2835_gpio_fsel(GREEN_LED, BCM2835_GPIO_FSEL_OUTP);
+        bcm2835_gpio_write(GREEN_LED, LOW);
+        bcm2835_gpio_write(RED_LED, LOW);
         // Configure Tx Rx Switch as input and pullup
         bcm2835_gpio_fsel(TXRX_PORT, BCM2835_GPIO_FSEL_INPT);
         bcm2835_gpio_set_pud(TXRX_PORT, BCM2835_GPIO_PUD_UP);
@@ -93,8 +95,6 @@ namespace utils{
     }
 
     bool destroyGPIO(){
-        bcm2835_gpio_write(GREEN_LED, LOW);
-        bcm2835_gpio_write(RED_LED, LOW);
         return bcm2835_close();
     }
 
