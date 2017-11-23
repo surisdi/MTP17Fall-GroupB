@@ -17,7 +17,7 @@ while True:
 	if(not GPIO.input(18)):
 		print("Launching Single Mode")
 		subprocess.call(['sudo','pkill', '-f', 'main'])
-		subprocess.Popen(["sudo","./main"])
+		subprocess.Popen(["sudo","/home/pi/MTP17Fall-GroupB/main"])
 		time.sleep(1)
 	else:
 		print("Network Mode")
