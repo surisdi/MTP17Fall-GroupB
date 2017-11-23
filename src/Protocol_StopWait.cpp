@@ -226,6 +226,7 @@ int StopWait::send_text(char *text) {
         // End of chunk
         if(i >= chunkLength/utils::PAYLOAD_L + extra){
             if(currChunk == num_chunk-1) {
+                utils::blinkRed();
                 break;
             } else {
                 currChunk++;
@@ -233,6 +234,7 @@ int StopWait::send_text(char *text) {
                 buffer = cmpFile[currChunk].data;
                 chunkLength = (int)(*(cmpFile[currChunk].len));
                 extra = ((chunkLength % utils::PAYLOAD_L) != 0);
+                utils::blinkGreen();
                 printStatus(currChunk, num_chunk);
             }
         }
