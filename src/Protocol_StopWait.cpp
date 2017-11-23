@@ -250,7 +250,6 @@ int StopWait::send_text(char *text) {
     	//utils::printPacket(packet, utils::CODE_L, 2);
 
     	socket->write_socket(packet, utils::CODE_L, 0);
-        utils::blinkGreen();
         /* Wait for ACK */
             
        	
