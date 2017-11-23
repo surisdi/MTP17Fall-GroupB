@@ -3,6 +3,7 @@
 #include "utils.hpp"
 #include <cstdio>
 #include <cstdlib> // for the random
+#include <stdint>
 #include <iostream>
 #include <bitset>
 #include <bcm2835.h>
