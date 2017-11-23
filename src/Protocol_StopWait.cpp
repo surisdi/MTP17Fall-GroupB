@@ -26,6 +26,7 @@ void printStatus(int currChunk, int num_chunk) {
 StopWait::StopWait(Compressor *comp, Encoder *enc, Socket *sck):
 Protocol(comp, enc, sck)
 {
+    utils::stayRed();
     COUT<< "Stop and wait created\n";
 }
 
@@ -68,7 +69,6 @@ bool StopWait::parseMessage(byte *message, byte flags, byte previous, unsigned i
 int StopWait::receive_text() {
 
     COUT<< "Receiving text...\n";
-    utils::stayRed();
 	
     byte packet[utils::CODE_L];
     byte corrected[utils::CODE_L];
