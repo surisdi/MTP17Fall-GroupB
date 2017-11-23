@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
             file_name = argv[1];
         }
         else{
-            file_name = (char *)"file.txt";
+            file_name = (char *)"/home/pi/MTP17Fall-GroupB/file.txt";
         }
         
         cout << "Input file name: " << file_name << endl;
