@@ -47,8 +47,8 @@ SocketRadio::SocketRadio(bool mode): Socket(mode){
     radio_sender->begin();
     radio_sender->setChannel(97);
     if(!mode){
-        // If mode is false, we are in Tx
-        radio_sender->setPALevel(RF24_PA_MAX);
+        // If mode is false, we are in Tx this max
+        radio_sender->setPALevel(RF24_PA_MIN);
     }else{
         radio_sender->setPALevel(RF24_PA_MIN);
     }
@@ -65,7 +65,8 @@ SocketRadio::SocketRadio(bool mode): Socket(mode){
         // If mode is false, we are in Tx
         radio_ack->setPALevel(RF24_PA_MIN);
     }else{
-        radio_ack->setPALevel(RF24_PA_MAX);
+        //this has to be max
+        radio_ack->setPALevel(RF24_PA_MIN);
     }
     radio_ack->setDataRate(RF24_250KBPS);
     //radio_ack->maskIRQ(1,1,0);
