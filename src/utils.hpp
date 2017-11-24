@@ -27,8 +27,8 @@ struct Chunk {
 	unsigned long *len;
 };
 
-//#define COUT std::cout
-#define COUT NullStream()
+#define COUT std::cout
+//#define COUT NullStream()
 
 typedef unsigned char byte;
 
